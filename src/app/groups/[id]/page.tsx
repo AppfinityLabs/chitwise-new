@@ -152,7 +152,13 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                             <div key={sub._id} className="flex items-center justify-between p-3 rounded-lg bg-slate-900/40 border border-white/5">
                                 <div>
                                     <p className="text-white font-medium text-sm">{sub.memberId.name}</p>
-                                    <p className="text-xs text-slate-500">{sub.units} Unit(s) • {sub.collectionPattern}</p>
+                                    <div className="flex gap-2 text-xs text-slate-500">
+                                        <span>{sub.units} Unit(s)</span>
+                                        <span>•</span>
+                                        <span className={sub.overdueAmount > 0 ? "text-rose-400 font-bold" : "text-emerald-400"}>
+                                            {sub.overdueAmount > 0 ? `Due: ₹${sub.overdueAmount}` : "All Clear"}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className={`w-2 h-2 rounded-full ${sub.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-slate-500'}`} />
                             </div>

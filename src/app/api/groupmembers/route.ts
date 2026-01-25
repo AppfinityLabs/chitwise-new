@@ -17,8 +17,23 @@ export async function GET(request: Request) {
     try {
         const subscriptions = await GroupMember.find(query)
             .populate('memberId', 'name phone')
-            .populate('groupId', 'groupName frequency contributionAmount');
-        return NextResponse.json(subscriptions);
+            .populate('groupId', 'groupName frequency contributionAmount currentPeriod');
+
+        // Calculate dynamic overdue amount
+        const subscriptionsWithDue = subscriptions.map(sub => {
+            const group = sub.groupId;
+            // Expected: Current Period * Contribution * Units
+            // Note: If currentPeriod is 1, and we are in period 1, we expect 1 payment? Yes.
+            const expectedAmount = group.currentPeriod * group.contributionAmount * sub.units;
+            const overdueAmount = Math.max(0, expectedAmount - sub.totalCollected);
+
+            return {
+                ...sub.toObject(),
+                overdueAmount
+            };
+        });
+
+        return NextResponse.json(subscriptionsWithDue);
     } catch (error) {
         return NextResponse.json({ error: 'Failed to fetch subscriptions' }, { status: 500 });
     }
