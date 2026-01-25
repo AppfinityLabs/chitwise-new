@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Layers, CreditCard, Settings, PieChart } from 'lucide-react';
+import { Home, Users, Layers, CreditCard, Settings, PieChart, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -11,6 +11,7 @@ const menuItems = [
     { icon: Layers, label: 'Chit Groups', href: '/groups' },
     { icon: Users, label: 'Members', href: '/members' },
     { icon: CreditCard, label: 'Collections', href: '/collections' },
+    { icon: Building2, label: 'Organisations', href: '/organisations' },
     { icon: PieChart, label: 'Reports', href: '/reports' },
     { icon: Settings, label: 'Settings', href: '/settings' },
 ];
