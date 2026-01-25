@@ -92,119 +92,102 @@ export default function OrganisationsPage() {
                     </Link>
                 </div>
             ) : (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {organisations.map((org) => (
                         <Link 
                             key={org._id} 
                             href={`/organisations/${org._id}`}
                             className="relative group block"
                         >
-                            <div className="glass-card hover:border-indigo-500/50 transition-all duration-300 relative overflow-hidden cursor-pointer">
+                            <div className="glass-card hover:border-indigo-500/50 transition-all duration-300 relative overflow-hidden cursor-pointer h-full">
                                 {/* Hover Gradient */}
-                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                                 
                                 {/* Card Content */}
-                                <div className="relative z-10 p-6">
-                                    <div className="flex items-center justify-between gap-6">
-                                        {/* Left Section - Organization Info */}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-4 mb-3">
-                                                {/* Code Label */}
-                                                <span className="px-3 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-bold">
-                                                    {org.code}
-                                                </span>
-                                                
-                                                {/* Status Badge */}
-                                                <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full ${
-                                                    org.status === 'ACTIVE' 
-                                                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                                                        : 'bg-slate-700/50 text-slate-400 border border-slate-600/30'
-                                                }`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${org.status === 'ACTIVE' ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />
-                                                    {org.status}
-                                                </span>
+                                <div className="relative z-10 p-5">
+                                    {/* Header with Code and Status */}
+                                    <div className="flex items-start justify-between mb-4">
+                                        <span className="px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold">
+                                            {org.code}
+                                        </span>
+                                        <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-md ${
+                                            org.status === 'ACTIVE' 
+                                                ? 'bg-emerald-500/20 text-emerald-400' 
+                                                : 'bg-slate-700/50 text-slate-400'
+                                        }`}>
+                                            {org.status}
+                                        </span>
+                                    </div>
 
-                                                {/* Creation Date */}
-                                                <span className="text-xs text-slate-500">
-                                                    Created {new Date(org.createdAt).toLocaleDateString('en-US', { 
-                                                        month: 'short', 
-                                                        day: 'numeric', 
-                                                        year: 'numeric' 
-                                                    })}
-                                                </span>
+                                    {/* Organisation Name */}
+                                    <h3 className="text-lg font-bold text-white mb-4 group-hover:text-indigo-400 transition-colors line-clamp-1">
+                                        {org.name}
+                                    </h3>
+
+                                    {/* Contact Information */}
+                                    <div className="space-y-2.5 mb-4">
+                                        {org.phone ? (
+                                            <div className="flex items-center gap-2 text-sm text-slate-400">
+                                                <Phone size={14} className="text-indigo-400 flex-shrink-0" />
+                                                <span className="truncate">{org.phone}</span>
                                             </div>
-
-                                            {/* Organisation Name */}
-                                            <h3 className="text-xl font-bold text-white mb-3 group-hover:text-indigo-400 transition-colors">
-                                                {org.name}
-                                            </h3>
-
-                                            {/* Contact Information - Horizontal Layout */}
-                                            <div className="flex items-center gap-6 text-sm">
-                                                {org.phone ? (
-                                                    <div className="flex items-center gap-2 text-slate-400">
-                                                        <Phone size={14} className="text-indigo-400" />
-                                                        <span>{org.phone}</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-2 text-slate-600">
-                                                        <Phone size={14} />
-                                                        <span className="text-xs">No phone</span>
-                                                    </div>
-                                                )}
-
-                                                {org.email ? (
-                                                    <div className="flex items-center gap-2 text-slate-400">
-                                                        <Mail size={14} className="text-violet-400" />
-                                                        <span className="truncate max-w-xs">{org.email}</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-2 text-slate-600">
-                                                        <Mail size={14} />
-                                                        <span className="text-xs">No email</span>
-                                                    </div>
-                                                )}
+                                        ) : (
+                                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                <Phone size={14} className="flex-shrink-0" />
+                                                <span className="text-xs">No phone</span>
                                             </div>
-                                        </div>
+                                        )}
 
-                                        {/* Right Section - Action Buttons */}
-                                        <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    router.push(`/organisations/${org._id}/edit`);
-                                                }}
-                                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800/50 hover:bg-amber-500/20 text-slate-400 hover:text-amber-400 transition-all border border-white/5 hover:border-amber-500/30"
-                                                title="Edit organisation"
-                                            >
-                                                <Edit size={16} />
-                                                <span className="text-sm font-medium">Edit</span>
-                                            </button>
-                                            
-                                            <button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    handleDelete(org._id, org.name);
-                                                }}
-                                                disabled={deleting === org._id}
-                                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800/50 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-all border border-white/5 hover:border-rose-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                title="Delete organisation"
-                                            >
-                                                {deleting === org._id ? (
-                                                    <>
-                                                        <Loader2 size={16} className="animate-spin" />
-                                                        <span className="text-sm font-medium">Deleting...</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Trash2 size={16} />
-                                                        <span className="text-sm font-medium">Delete</span>
-                                                    </>
-                                                )}
-                                            </button>
-                                        </div>
+                                        {org.email ? (
+                                            <div className="flex items-center gap-2 text-sm text-slate-400">
+                                                <Mail size={14} className="text-violet-400 flex-shrink-0" />
+                                                <span className="truncate">{org.email}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                <Mail size={14} className="flex-shrink-0" />
+                                                <span className="text-xs">No email</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all pt-3 border-t border-white/5">
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                router.push(`/organisations/${org._id}/edit`);
+                                            }}
+                                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-800/50 hover:bg-amber-500/20 text-slate-400 hover:text-amber-400 transition-all"
+                                            title="Edit organisation"
+                                        >
+                                            <Edit size={14} />
+                                            <span>Edit</span>
+                                        </button>
+                                        
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleDelete(org._id, org.name);
+                                            }}
+                                            disabled={deleting === org._id}
+                                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-800/50 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="Delete organisation"
+                                        >
+                                            {deleting === org._id ? (
+                                                <>
+                                                    <Loader2 size={14} className="animate-spin" />
+                                                    <span>Deleting...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Trash2 size={14} />
+                                                    <span>Delete</span>
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
