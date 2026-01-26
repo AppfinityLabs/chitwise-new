@@ -127,6 +127,19 @@ export async function POST() {
             joinDate: new Date("2026-01-10")
         });
 
+        // --- Case 4: Double Chit (Rajesh) ---
+        // Rajesh joins Group 1 (which is 52W-2000-2026 created above)
+        const memberRajesh = await Member.create({ name: "Rajesh", phone: "9876543213" });
+        await GroupMember.create({
+            groupId: group1._id,
+            memberId: memberRajesh._id,
+            units: 2.0,
+            collectionPattern: "WEEKLY",
+            collectionFactor: 1,
+            totalDue: 2000 * 52 * 2,
+            joinDate: new Date("2026-01-10")
+        });
+
         return NextResponse.json({ message: "Seed data created successfully", groups: [group1, group2, group3] });
     } catch (error) {
         console.error(error);
