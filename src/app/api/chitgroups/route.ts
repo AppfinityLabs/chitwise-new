@@ -11,9 +11,18 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    let query = {};
+    const { searchParams } = new URL(request.url);
+    const organisationId = searchParams.get('organisationId');
+
+    let query: any = {};
+
+    // Org Admin: Enforce Own Org
     if (user.role === 'ORG_ADMIN' && user.organisationId) {
-        query = { organisationId: user.organisationId };
+        query.organisationId = user.organisationId;
+    }
+    // Super Admin: Allow Filter
+    else if (organisationId) {
+        query.organisationId = organisationId;
     }
 
     try {
