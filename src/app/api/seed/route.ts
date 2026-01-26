@@ -5,6 +5,8 @@ import Member from '@/models/Member';
 import GroupMember from '@/models/GroupMember';
 import Collection from '@/models/Collection';
 import Winner from '@/models/Winner';
+import User from '@/models/User';
+import { hashPassword } from '@/lib/auth';
 import mongoose from 'mongoose';
 
 export async function POST() {
@@ -16,6 +18,19 @@ export async function POST() {
         await GroupMember.deleteMany({});
         await ChitGroup.deleteMany({});
         await Member.deleteMany({});
+        await User.deleteMany({});
+
+        // Create Super Admin User
+        const hashedPassword = await hashPassword('Admin@123');
+        await User.create({
+            email: 'admin@gmail.com',
+            password: hashedPassword,
+            name: 'Super Admin',
+            role: 'SUPER_ADMIN',
+            status: 'ACTIVE'
+        });
+
+        console.log('✅ Super Admin created: admin@gmail.com / Admin@123');
 
         // --- Case 1: 52-Week Chit ---
         const group1 = await ChitGroup.create({

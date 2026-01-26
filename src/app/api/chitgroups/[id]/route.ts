@@ -1,15 +1,21 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import ChitGroup from '@/models/ChitGroup';
 import GroupMember from '@/models/GroupMember';
 import Collection from '@/models/Collection';
 import Winner from '@/models/Winner';
+import { verifyApiAuth } from '@/lib/apiAuth';
 import mongoose from 'mongoose';
 
 export async function GET(
-    request: Request,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const user = verifyApiAuth(request);
+    if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     await dbConnect();
     try {
         const { id } = await params;
@@ -58,9 +64,14 @@ export async function GET(
 }
 
 export async function DELETE(
-    request: Request,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const user = verifyApiAuth(request);
+    if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     await dbConnect();
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -108,9 +119,14 @@ export async function DELETE(
 }
 
 export async function PUT(
-    request: Request,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const user = verifyApiAuth(request);
+    if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     await dbConnect();
 
     try {

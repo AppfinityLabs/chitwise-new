@@ -1,10 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import GroupMember from '@/models/GroupMember';
 import ChitGroup from '@/models/ChitGroup';
 import Member from '@/models/Member'; // Ensure model is registered
+import { verifyApiAuth } from '@/lib/apiAuth';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+    const user = verifyApiAuth(request);
+    if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     await dbConnect();
     const { searchParams } = new URL(request.url);
     const groupId = searchParams.get('groupId');
@@ -39,7 +45,12 @@ export async function GET(request: Request) {
     }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+    const user = verifyApiAuth(request);
+    if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     await dbConnect();
     try {
         const body = await request.json();

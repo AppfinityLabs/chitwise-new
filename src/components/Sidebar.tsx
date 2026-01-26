@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Layers, CreditCard, Settings, PieChart, Building2 } from 'lucide-react';
+import { Home, Users, Layers, CreditCard, Settings, PieChart, Building2, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
 
 const menuItems = [
     { icon: Home, label: 'Dashboard', href: '/' },
@@ -18,6 +19,22 @@ const menuItems = [
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const { user, logout } = useAuth();
+
+    const handleLogout = async () => {
+        if (confirm('Are you sure you want to logout?')) {
+            await logout();
+        }
+    };
+
+    const getUserInitials = (name: string) => {
+        return name
+            .split(' ')
+            .map(word => word[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
+    };
 
     return (
         <aside className="w-64 h-screen sticky top-0 bg-slate-900/50 backdrop-blur-xl border-r border-white/5 flex flex-col p-6">
@@ -37,19 +54,18 @@ export default function Sidebar() {
                                 className={cn(
                                     'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative',
                                     isActive
-                                        ? 'text-white'
+                                        ? 'bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 border border-indigo-500/30 text-white'
                                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                                 )}
                             >
                                 {isActive && (
                                     <motion.div
                                         layoutId="activeTab"
-                                        className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 to-blue-600/20 rounded-xl border border-indigo-500/30"
-                                        initial={false}
-                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-cyan-500/10 rounded-xl"
+                                        transition={{ type: 'spring', duration: 0.6 }}
                                     />
                                 )}
-                                <item.icon className={cn("w-5 h-5 relative z-10", isActive ? "text-indigo-400" : "group-hover:text-indigo-300")} />
+                                <item.icon className="w-5 h-5 relative z-10" />
                                 <span className="relative z-10 font-medium">{item.label}</span>
                             </div>
                         </Link>
@@ -58,14 +74,28 @@ export default function Sidebar() {
             </nav>
 
             <div className="mt-auto pt-6 border-t border-white/5">
-                <div className="flex items-center gap-3 px-2">
-                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs font-bold">
-                        AD
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3 px-2">
+                        <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs font-bold">
+                            {user ? getUserInitials(user.name) : 'U'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm text-white font-medium truncate">
+                                {user?.name || 'User'}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate capitalize">
+                                {user?.role.replace('_', ' ').toLowerCase() || 'Role'}
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <p className="text-sm text-white font-medium">Admin User</p>
-                        <p className="text-xs text-slate-500">Organiser</p>
-                    </div>
+                    
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-200 group"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        <span className="text-sm font-medium">Logout</span>
+                    </button>
                 </div>
             </div>
         </aside>
