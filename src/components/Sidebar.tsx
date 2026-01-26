@@ -14,8 +14,8 @@ const menuItems = [
     { icon: CreditCard, label: 'Collections', href: '/collections' },
     { icon: Building2, label: 'Organisations', href: '/organisations' },
     { icon: PieChart, label: 'Reports', href: '/reports' },
-    { icon: Settings, label: 'Settings', href: '/settings' },
     { icon: UserCog, label: 'System Users', href: '/users' },
+    { icon: Settings, label: 'Settings', href: '/settings' },
 ];
 
 export default function Sidebar() {
