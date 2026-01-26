@@ -15,15 +15,25 @@ interface Organisation {
     createdAt: string;
 }
 
+import { useAuth } from '@/context/AuthContext';
+
 export default function OrganisationsPage() {
+    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const [organisations, setOrganisations] = useState<Organisation[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchOrganisations();
-    }, []);
+        if (!authLoading && user && user.role !== 'SUPER_ADMIN') {
+            router.push('/');
+            return;
+        }
+
+        if (!authLoading && user?.role === 'SUPER_ADMIN') {
+            fetchOrganisations();
+        }
+    }, [user, authLoading, router]);
 
     const fetchOrganisations = () => {
         fetch('/api/organisations')
@@ -94,15 +104,15 @@ export default function OrganisationsPage() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {organisations.map((org) => (
-                        <Link 
-                            key={org._id} 
+                        <Link
+                            key={org._id}
                             href={`/organisations/${org._id}`}
                             className="relative group block"
                         >
                             <div className="glass-card hover:border-indigo-500/50 transition-all duration-300 relative overflow-hidden cursor-pointer h-full">
                                 {/* Hover Gradient */}
                                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                
+
                                 {/* Card Content */}
                                 <div className="relative z-10 p-5">
                                     {/* Header with Code and Status */}
@@ -110,11 +120,10 @@ export default function OrganisationsPage() {
                                         <span className="px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold">
                                             {org.code}
                                         </span>
-                                        <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-md ${
-                                            org.status === 'ACTIVE' 
-                                                ? 'bg-emerald-500/20 text-emerald-400' 
+                                        <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-md ${org.status === 'ACTIVE'
+                                                ? 'bg-emerald-500/20 text-emerald-400'
                                                 : 'bg-slate-700/50 text-slate-400'
-                                        }`}>
+                                            }`}>
                                             {org.status}
                                         </span>
                                     </div>
@@ -165,7 +174,7 @@ export default function OrganisationsPage() {
                                             <Edit size={14} />
                                             <span>Edit</span>
                                         </button>
-                                        
+
                                         <button
                                             onClick={(e) => {
                                                 e.preventDefault();

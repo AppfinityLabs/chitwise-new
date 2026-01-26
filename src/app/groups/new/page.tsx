@@ -1,12 +1,15 @@
 'use client';
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Building2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function NewGroupPage() {
     const router = useRouter();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
+    const [organisations, setOrganisations] = useState<any[]>([]);
+
     const [formData, setFormData] = useState({
         groupName: '',
         frequency: 'WEEKLY',
@@ -16,8 +19,20 @@ export default function NewGroupPage() {
         commissionValue: '',
         allowCustomCollectionPattern: false,
         startDate: '',
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        organisationId: ''
     });
+
+    useEffect(() => {
+        if (user?.role === 'SUPER_ADMIN') {
+            fetch('/api/organisations')
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) setOrganisations(data);
+                })
+                .catch(console.error);
+        }
+    }, [user]);
 
     const handleChange = (e: any) => {
         const { name, value, type, checked } = e.target;
@@ -41,7 +56,8 @@ export default function NewGroupPage() {
             if (res.ok) {
                 router.push('/groups');
             } else {
-                alert('Failed to create group');
+                const data = await res.json();
+                alert(data.error || 'Failed to create group');
             }
         } catch (err) {
             console.error(err);
@@ -56,6 +72,36 @@ export default function NewGroupPage() {
             <h1 className="text-3xl font-bold text-white mb-8">Create New Group</h1>
 
             <form onSubmit={handleSubmit} className="glass-card p-8 space-y-6">
+
+                {/* Organisation Selection for Super Admin */}
+                {user?.role === 'SUPER_ADMIN' && (
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-300">Organisation</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <Building2 size={18} className="text-slate-500" />
+                            </div>
+                            <select
+                                name="organisationId"
+                                value={formData.organisationId}
+                                onChange={handleChange}
+                                className="w-full bg-slate-900/50 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer"
+                                required
+                            >
+                                <option value="">Select Organisation</option>
+                                {organisations.map(org => (
+                                    <option key={org._id} value={org._id}>{org.name} ({org.code})</option>
+                                ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                                <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-300">Group Name</label>
                     <input

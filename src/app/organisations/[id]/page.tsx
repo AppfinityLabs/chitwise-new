@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { 
-    Phone, 
-    Mail, 
-    Edit, 
-    Trash2, 
+import {
+    Phone,
+    Mail,
+    Edit,
+    Trash2,
     ArrowLeft,
     Loader2
 } from 'lucide-react';
@@ -99,7 +99,7 @@ export default function OrganisationDetail() {
         <div>
             {/* Header */}
             <div className="mb-8">
-                <Link 
+                <Link
                     href="/organisations"
                     className="inline-flex items-center gap-2 text-slate-400 hover:text-indigo-400 transition-colors mb-6"
                 >
@@ -120,11 +120,10 @@ export default function OrganisationDetail() {
                                     {organisation.phone}
                                 </span>
                             )}
-                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-md ${
-                                organisation.status === 'ACTIVE' 
-                                    ? 'bg-emerald-500/20 text-emerald-400' 
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-md ${organisation.status === 'ACTIVE'
+                                    ? 'bg-emerald-500/20 text-emerald-400'
                                     : 'bg-slate-700/50 text-slate-400'
-                            }`}>
+                                }`}>
                                 {organisation.status}
                             </span>
                         </div>
@@ -138,7 +137,7 @@ export default function OrganisationDetail() {
                         >
                             Edit
                         </Link>
-                        
+
                         <button
                             onClick={handleDelete}
                             disabled={deleting}
@@ -176,7 +175,7 @@ export default function OrganisationDetail() {
                         {organisation.email && (
                             <div>
                                 <label className="text-xs text-slate-500 mb-1 block">Email</label>
-                                <a 
+                                <a
                                     href={`mailto:${organisation.email}`}
                                     className="text-indigo-400 hover:text-indigo-300 transition-colors"
                                 >

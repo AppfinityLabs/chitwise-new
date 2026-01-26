@@ -15,35 +15,54 @@ export async function GET(request: NextRequest) {
     await dbConnect();
 
     try {
-        // 1. Stats Calculation
-        const activeGroupsCount = await ChitGroup.countDocuments({ status: 'ACTIVE' });
+        let orgGroupIds: any[] = [];
+        let orgQuery: any = {};
 
-        // Total Collections (Sum of all verified payments)
+        // Scope to Organisation if Org Admin
+        if (user.role === 'ORG_ADMIN' && user.organisationId) {
+            orgQuery = { organisationId: user.organisationId };
+            const orgGroups = await ChitGroup.find(orgQuery).select('_id');
+            orgGroupIds = orgGroups.map(g => g._id);
+        }
+
+        // 1. Stats Calculation
+        const activeGroupsCount = await ChitGroup.countDocuments({ status: 'ACTIVE', ...orgQuery });
+
+        // Active Members
+        const activeMembersCount = await Member.countDocuments({ status: 'ACTIVE', ...orgQuery });
+
+
+        let collectionMatch: any = { status: 'PAID' };
+        let groupMemberMatch: any = { status: 'ACTIVE' };
+
+        if (user.role === 'ORG_ADMIN' && user.organisationId) {
+            collectionMatch.groupId = { $in: orgGroupIds };
+            groupMemberMatch.groupId = { $in: orgGroupIds };
+        }
+
+        // Total Collections
         const totalCollectionsResult = await Collection.aggregate([
-            { $match: { status: 'PAID' } },
+            { $match: collectionMatch },
             { $group: { _id: null, total: { $sum: "$amountPaid" } } }
         ]);
         const totalCollections = totalCollectionsResult[0]?.total || 0;
 
-        // Active Members (Unique members who are active)
-        const activeMembersCount = await Member.countDocuments({ status: 'ACTIVE' });
-
-        // Pending Dues (Sum of all pending amounts in active subscriptions)
+        // Pending Dues
         const pendingDuesResult = await GroupMember.aggregate([
-            { $match: { status: 'ACTIVE' } },
+            { $match: groupMemberMatch },
             { $group: { _id: null, total: { $sum: "$pendingAmount" } } }
         ]);
         const totalPendingDues = pendingDuesResult[0]?.total || 0;
 
-        // 2. Recent Collections (Last 5)
-        const recentCollections = await Collection.find({ status: 'PAID' })
+        // 2. Recent Collections
+        const recentCollections = await Collection.find(collectionMatch)
             .sort({ createdAt: -1 })
             .limit(5)
             .populate('memberId', 'name')
             .populate('groupId', 'groupName');
 
-        // 3. Pending Dues List (Top 5 highest pending)
-        const pendingDuesList = await GroupMember.find({ status: 'ACTIVE', pendingAmount: { $gt: 0 } })
+        // 3. Pending Dues List
+        const pendingDuesList = await GroupMember.find({ ...groupMemberMatch, pendingAmount: { $gt: 0 } })
             .sort({ pendingAmount: -1 })
             .limit(5)
             .populate('memberId', 'name');

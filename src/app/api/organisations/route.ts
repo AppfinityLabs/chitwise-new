@@ -9,6 +9,10 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (user.role !== 'SUPER_ADMIN') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     await dbConnect();
     try {
         const organisations = await Organisation.find({}).sort({ name: 1 });
@@ -24,15 +28,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (user.role !== 'SUPER_ADMIN') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     await dbConnect();
     try {
         const body = await request.json();
         const organisation = await Organisation.create(body);
         return NextResponse.json(organisation, { status: 201 });
     } catch (error: any) {
-        return NextResponse.json({ 
-            error: 'Failed to create organisation', 
-            details: error.message 
+        return NextResponse.json({
+            error: 'Failed to create organisation',
+            details: error.message
         }, { status: 400 });
     }
 }

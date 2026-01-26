@@ -10,8 +10,16 @@ export async function GET(request: NextRequest) {
     }
 
     await dbConnect();
+
+    let query = {};
+    if (user.role === 'ORG_ADMIN' && user.organisationId) {
+        query = { organisationId: user.organisationId };
+    }
+
     try {
-        const groups = await ChitGroup.find({}).sort({ createdAt: -1 });
+        const groups = await ChitGroup.find(query)
+            .sort({ createdAt: -1 })
+            .populate('organisationId', 'name code');
         return NextResponse.json(groups);
     } catch (error) {
         return NextResponse.json({ error: 'Failed to fetch groups' }, { status: 500 });
@@ -27,9 +35,22 @@ export async function POST(request: NextRequest) {
     await dbConnect();
     try {
         const body = await request.json();
+
+        // Scope to Organisation
+        if (user.role === 'ORG_ADMIN') {
+            if (!user.organisationId) {
+                return NextResponse.json({ error: 'User not linked to an organisation' }, { status: 400 });
+            }
+            body.organisationId = user.organisationId;
+        } else if (user.role === 'SUPER_ADMIN') {
+            if (!body.organisationId) {
+                return NextResponse.json({ error: 'Organisation ID is required for Super Admin' }, { status: 400 });
+            }
+        }
+
         const group = await ChitGroup.create(body);
         return NextResponse.json(group, { status: 201 });
-    } catch (error) {
-        return NextResponse.json({ error: 'Failed to create group', details: error }, { status: 400 });
+    } catch (error: any) {
+        return NextResponse.json({ error: 'Failed to create group', details: error.message }, { status: 400 });
     }
 }

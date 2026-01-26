@@ -17,7 +17,23 @@ export async function GET(request: NextRequest) {
     const memberId = searchParams.get('memberId');
 
     const query: any = {};
-    if (groupId) query.groupId = groupId;
+
+    // Filter by Organisation
+    if (user.role === 'ORG_ADMIN' && user.organisationId) {
+        // Find all groups for this organisation
+        const orgGroups = await ChitGroup.find({ organisationId: user.organisationId }).select('_id');
+        const orgGroupIds = orgGroups.map(g => g._id);
+        query.groupId = { $in: orgGroupIds };
+    }
+
+    if (groupId) {
+        // If specific groupId requested, ensure it belongs to the org
+        if (query.groupId) {
+            query.groupId = { $in: query.groupId['$in'].filter((id: any) => id.toString() === groupId) };
+        } else {
+            query.groupId = groupId;
+        }
+    }
     if (memberId) query.memberId = memberId;
 
     try {

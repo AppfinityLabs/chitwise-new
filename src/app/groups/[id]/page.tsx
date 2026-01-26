@@ -35,11 +35,18 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
             .then((data) => {
                 setGroup(data);
                 // Fetch members for this group
-                return fetch(`/api/groupmembers?groupId=${id}`);
+                if (data && data._id) {
+                    return fetch(`/api/groupmembers?groupId=${id}`);
+                }
+                return null;
             })
-            .then(res => res.json())
+            .then(res => res ? res.json() : [])
             .then(data => {
-                setMembers(data);
+                if (Array.isArray(data)) {
+                    setMembers(data);
+                } else {
+                    setMembers([]);
+                }
                 setLoading(false);
             })
             .catch((err) => {

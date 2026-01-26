@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus, Loader2, Phone, User as UserIcon } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function MembersPage() {
+    const { user } = useAuth();
     const [members, setMembers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -12,7 +14,16 @@ export default function MembersPage() {
         fetch('/api/members')
             .then((res) => res.json())
             .then((data) => {
-                setMembers(data);
+                if (Array.isArray(data)) {
+                    setMembers(data);
+                } else {
+                    setMembers([]);
+                }
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setMembers([]);
                 setLoading(false);
             });
     }, []);
@@ -36,6 +47,7 @@ export default function MembersPage() {
                         <tr>
                             <th className="p-4">Name</th>
                             <th className="p-4">Phone</th>
+                            {user?.role === 'SUPER_ADMIN' && <th className="p-4">Org</th>}
                             <th className="p-4">Status</th>
                             <th className="p-4">Joined</th>
                             <th className="p-4 text-right">Actions</th>
@@ -67,6 +79,13 @@ export default function MembersPage() {
                                             {member.phone}
                                         </div>
                                     </td>
+                                    {user?.role === 'SUPER_ADMIN' && (
+                                        <td className="p-4">
+                                            <span className="text-xs font-medium text-slate-400 bg-slate-800 px-2 py-1 rounded-md border border-white/10">
+                                                {member.organisationId?.code || '-'}
+                                            </span>
+                                        </td>
+                                    )}
                                     <td className="p-4">
                                         <span className={`px-2 py-1 rounded-full text-xs font-bold ${member.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>
                                             {member.status}

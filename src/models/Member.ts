@@ -7,6 +7,7 @@ export interface IMember extends Document {
     address?: string;
     status: 'ACTIVE' | 'INACTIVE';
     kycVerified: boolean;
+    organisationId: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -18,6 +19,7 @@ const MemberSchema = new Schema<IMember>({
     address: { type: String },
     status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
     kycVerified: { type: Boolean, default: false },
+    organisationId: { type: Schema.Types.ObjectId, ref: 'Organisation', required: true },
 }, { timestamps: true });
 
 export default mongoose.models.Member || mongoose.model<IMember>('Member', MemberSchema);

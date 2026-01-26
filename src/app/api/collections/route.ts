@@ -18,15 +18,35 @@ export async function GET(request: NextRequest) {
     const memberId = searchParams.get('memberId');
 
     const query: any = {};
+
+    // Filter by Organisation
+    if (user.role === 'ORG_ADMIN' && user.organisationId) {
+        // Find all groups for this organisation
+        const orgGroups = await ChitGroup.find({ organisationId: user.organisationId }).select('_id');
+        const orgGroupIds = orgGroups.map(g => g._id);
+        query.groupId = { $in: orgGroupIds };
+    }
+
     if (groupMemberId) query.groupMemberId = groupMemberId;
-    if (groupId) query.groupId = groupId;
+    if (groupId) {
+        // If specific groupId requested, ensure it belongs to the org
+        if (query.groupId) {
+            query.groupId = { $in: query.groupId['$in'].filter((id: any) => id.toString() === groupId) };
+        } else {
+            query.groupId = groupId;
+        }
+    }
     if (memberId) query.memberId = memberId;
 
     try {
         const collections = await Collection.find(query)
             .sort({ collectedAt: -1 })
             .populate('memberId', 'name')
-            .populate('groupId', 'groupName')
+            .populate({
+                path: 'groupId',
+                select: 'groupName organisationId',
+                populate: { path: 'organisationId', select: 'name code' }
+            })
             .populate('groupMemberId');
         return NextResponse.json(collections);
     } catch (error) {

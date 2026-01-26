@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Loader2, Calendar, DollarSign, Users, Trash2, Copy, Edit } from 'lucide-react';
+import { Plus, Loader2, Calendar, DollarSign, Users, Trash2, Copy, Edit, Building2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface ChitGroup {
     _id: string;
@@ -14,9 +15,14 @@ interface ChitGroup {
     currentPeriod: number;
     totalPeriods: number;
     status: string;
+    organisationId?: {
+        name: string;
+        code: string;
+    };
 }
 
 export default function GroupsPage() {
+    const { user } = useAuth();
     const [groups, setGroups] = useState<ChitGroup[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<string | null>(null);
@@ -156,7 +162,7 @@ export default function GroupsPage() {
                                             <Copy size={16} />
                                         )}
                                     </button>
-                                    
+
                                     {/* Delete Button */}
                                     <button
                                         onClick={(e) => {
@@ -186,6 +192,12 @@ export default function GroupsPage() {
                                                 {group.status}
                                             </span>
                                         </div>
+                                        {user?.role === 'SUPER_ADMIN' && group.organisationId && (
+                                            <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-500/10 border border-purple-500/20 rounded-lg text-xs font-medium text-purple-400" title={group.organisationId.name}>
+                                                <Building2 size={12} />
+                                                <span className="max-w-[100px] truncate">{group.organisationId.code}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <h3 className="text-xl font-bold text-white mb-1 group-hover:text-indigo-400 transition-colors">{group.groupName}</h3>

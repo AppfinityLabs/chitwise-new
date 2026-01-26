@@ -4,7 +4,8 @@ export interface IUser extends Document {
     email: string;
     password: string;
     name: string;
-    role: 'SUPER_ADMIN' | 'ADMIN' | 'USER';
+    role: 'SUPER_ADMIN' | 'ORG_ADMIN';
+    organisationId?: mongoose.Types.ObjectId;
     status: 'ACTIVE' | 'INACTIVE';
     createdAt: Date;
     updatedAt: Date;
@@ -32,8 +33,12 @@ const UserSchema = new Schema<IUser>(
         },
         role: {
             type: String,
-            enum: ['SUPER_ADMIN', 'ADMIN', 'USER'],
-            default: 'USER'
+            enum: ['SUPER_ADMIN', 'ORG_ADMIN'],
+            default: 'ORG_ADMIN'
+        },
+        organisationId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Organisation'
         },
         status: {
             type: String,

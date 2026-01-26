@@ -46,10 +46,12 @@ export async function POST(request: NextRequest) {
         }
 
         // Generate JWT token
+        // Generate JWT token
         const token = signToken({
             userId: user._id.toString(),
             email: user.email,
-            role: user.role
+            role: user.role,
+            organisationId: user.organisationId?.toString()
         });
 
         // Create response with user data (excluding password)

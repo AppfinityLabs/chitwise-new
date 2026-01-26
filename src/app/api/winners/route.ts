@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Winner from '@/models/Winner';
+import ChitGroup from '@/models/ChitGroup';
 import GroupMember from '@/models/GroupMember'; // To verify subscription
 import { verifyApiAuth } from '@/lib/apiAuth';
 
@@ -17,14 +18,33 @@ export async function GET(request: NextRequest) {
     const memberId = searchParams.get('memberId');
 
     const query: any = {};
-    if (groupId) query.groupId = groupId;
+
+    // Filter by Organisation
+    if (user.role === 'ORG_ADMIN' && user.organisationId) {
+        // Find all groups for this organisation
+        const orgGroups = await ChitGroup.find({ organisationId: user.organisationId }).select('_id');
+        const orgGroupIds = orgGroups.map(g => g._id);
+        query.groupId = { $in: orgGroupIds };
+    }
+
+    if (groupId) {
+        if (query.groupId) {
+            query.groupId = { $in: query.groupId['$in'].filter((id: any) => id.toString() === groupId) };
+        } else {
+            query.groupId = groupId;
+        }
+    }
     if (groupMemberId) query.groupMemberId = groupMemberId;
     if (memberId) query.memberId = memberId;
 
     try {
         const winners = await Winner.find(query)
             .populate('memberId', 'name')
-            .populate('groupId', 'groupName')
+            .populate({
+                path: 'groupId',
+                select: 'groupName',
+                populate: { path: 'organisationId', select: 'name code' }
+            })
             .sort({ createdAt: -1 });
         return NextResponse.json(winners);
     } catch (error) {
@@ -59,6 +79,14 @@ export async function POST(request: NextRequest) {
         // Basic validations
         if (!groupId || !groupMemberId || !memberId || !basePeriodNumber || !winningUnits || !prizeAmount) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
+
+        // Validate Organisation Scope
+        if (user.role === 'ORG_ADMIN' && user.organisationId) {
+            const group = await ChitGroup.findById(groupId);
+            if (!group || group.organisationId.toString() !== user.organisationId.toString()) {
+                return NextResponse.json({ error: 'Group does not belong to your organisation' }, { status: 403 });
+            }
         }
 
         // Verify that the GroupMember exists and belongs to the group

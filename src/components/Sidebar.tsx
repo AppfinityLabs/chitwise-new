@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Layers, CreditCard, Settings, PieChart, Building2, LogOut } from 'lucide-react';
+import { Home, Users, Layers, CreditCard, Settings, PieChart, Building2, LogOut, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
@@ -15,6 +15,7 @@ const menuItems = [
     { icon: Building2, label: 'Organisations', href: '/organisations' },
     { icon: PieChart, label: 'Reports', href: '/reports' },
     { icon: Settings, label: 'Settings', href: '/settings' },
+    { icon: UserCog, label: 'System Users', href: '/users' },
 ];
 
 export default function Sidebar() {
@@ -46,7 +47,14 @@ export default function Sidebar() {
             </div>
 
             <nav className="space-y-2 flex-1">
-                {menuItems.map((item) => {
+                {menuItems.filter(item => {
+                    if (!user) return false;
+                    if (user.role === 'SUPER_ADMIN') return true;
+                    if (user.role === 'ORG_ADMIN') {
+                        return ['/', '/groups', '/members', '/collections', '/reports'].includes(item.href);
+                    }
+                    return false;
+                }).map((item) => {
                     const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
                     return (
                         <Link key={item.href} href={item.href}>
@@ -88,7 +96,7 @@ export default function Sidebar() {
                             </p>
                         </div>
                     </div>
-                    
+
                     <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-200 group"

@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus, Search, Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function CollectionsPage() {
+    const { user } = useAuth();
     const [collections, setCollections] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -12,7 +14,16 @@ export default function CollectionsPage() {
         fetch('/api/collections')
             .then((res) => res.json())
             .then((data) => {
-                setCollections(data);
+                if (Array.isArray(data)) {
+                    setCollections(data);
+                } else {
+                    setCollections([]);
+                }
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setCollections([]);
                 setLoading(false);
             });
     }, []);
@@ -34,6 +45,7 @@ export default function CollectionsPage() {
                             <th className="p-4">Date</th>
                             <th className="p-4">Member</th>
                             <th className="p-4">Group</th>
+                            {user?.role === 'SUPER_ADMIN' && <th className="p-4">Org</th>}
                             <th className="p-4">Period</th>
                             <th className="p-4 text-right">Amount</th>
                             <th className="p-4">Mode</th>
@@ -48,6 +60,13 @@ export default function CollectionsPage() {
                                 <td className="p-4">{new Date(col.periodDate).toLocaleDateString()}</td>
                                 <td className="p-4 font-medium text-white">{col.memberId?.name}</td>
                                 <td className="p-4">{col.groupId?.groupName || '...'}</td>
+                                {user?.role === 'SUPER_ADMIN' && (
+                                    <td className="p-4">
+                                        <span className="text-xs font-medium text-slate-400 bg-slate-800 px-2 py-1 rounded-md border border-white/10">
+                                            {col.groupId?.organisationId?.code || '-'}
+                                        </span>
+                                    </td>
+                                )}
                                 <td className="p-4">#{col.basePeriodNumber}</td>
                                 <td className="p-4 text-right font-bold text-emerald-400">₹ {col.amountPaid}</td>
                                 <td className="p-4">{col.paymentMode}</td>

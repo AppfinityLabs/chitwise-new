@@ -8,6 +8,7 @@ export interface JWTPayload {
     userId: string;
     email: string;
     role: string;
+    organisationId?: string;
 }
 
 /**
@@ -50,13 +51,13 @@ export function verifyToken(token: string): JWTPayload | null {
  */
 export function getTokenFromCookies(cookies: string | null): string | null {
     if (!cookies) return null;
-    
+
     const tokenCookie = cookies
         .split(';')
         .find(c => c.trim().startsWith('token='));
-    
+
     if (!tokenCookie) return null;
-    
+
     return tokenCookie.split('=')[1];
 }
 
@@ -66,6 +67,6 @@ export function getTokenFromCookies(cookies: string | null): string | null {
 export function verifyUserFromRequest(cookieHeader: string | null): JWTPayload | null {
     const token = getTokenFromCookies(cookieHeader);
     if (!token) return null;
-    
+
     return verifyToken(token);
 }
