@@ -69,7 +69,7 @@ export default function LoginForm() {
     // Show loading while checking authentication
     if (checking) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
+            <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
                 <Loader2 className="w-12 h-12 animate-spin text-indigo-500" />
             </div>
         );
