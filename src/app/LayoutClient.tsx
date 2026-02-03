@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { useAuth } from '@/context/AuthContext';
 import { Loader2 } from 'lucide-react';
+import BottomNav from '@/components/BottomNav';
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -27,12 +28,17 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     // Regular pages with sidebar
     return (
         <>
-            <Sidebar />
-            <main className="flex-1 h-screen overflow-y-auto w-full">
-                <div className="max-w-7xl mx-auto p-8">
+            <div className="hidden md:flex">
+                <Sidebar />
+            </div>
+
+            <main className="flex-1 h-screen overflow-y-auto w-full pb-20 md:pb-0 bg-slate-950">
+                <div className="max-w-7xl mx-auto p-4 md:p-8">
                     {children}
                 </div>
             </main>
+
+            <BottomNav />
         </>
     );
 }
