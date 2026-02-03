@@ -37,7 +37,12 @@ export default function GroupsPage() {
         fetch('/api/chitgroups')
             .then((res) => res.json())
             .then((data) => {
-                setGroups(data);
+                if (Array.isArray(data)) {
+                    setGroups(data);
+                } else {
+                    console.error('Expected array of groups, got:', data);
+                    setGroups([]);
+                }
                 setLoading(false);
             })
             .catch((err) => {

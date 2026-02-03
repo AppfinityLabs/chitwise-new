@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyToken, getTokenFromCookies } from '@/lib/auth';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Public routes that don't require authentication
@@ -16,7 +16,7 @@ export function middleware(request: NextRequest) {
     // Get token from cookies for checking authentication
     const cookieHeader = request.headers.get('cookie');
     const token = getTokenFromCookies(cookieHeader);
-    const decoded = token ? verifyToken(token) : null;
+    const decoded = token ? await verifyToken(token) : null;
 
     // If user is authenticated and trying to access login page, redirect to dashboard
     if (isPublicRoute && decoded && pathname === '/login') {
@@ -41,7 +41,7 @@ export function middleware(request: NextRequest) {
                 { status: 401 }
             );
         }
-        
+
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('redirect', pathname);
         return NextResponse.redirect(loginUrl);
@@ -55,7 +55,7 @@ export function middleware(request: NextRequest) {
                 { status: 401 }
             );
         }
-        
+
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('redirect', pathname);
         return NextResponse.redirect(loginUrl);

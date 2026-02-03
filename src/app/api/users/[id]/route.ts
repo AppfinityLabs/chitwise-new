@@ -9,7 +9,7 @@ interface RouteParams {
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
-    const user = verifyApiAuth(request);
+    const user = await verifyApiAuth(request);
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-    const requester = verifyApiAuth(request);
+    const requester = await verifyApiAuth(request);
     if (!requester) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-    const requester = verifyApiAuth(request);
+    const requester = await verifyApiAuth(request);
     if (!requester) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

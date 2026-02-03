@@ -6,7 +6,7 @@ import Member from '@/models/Member'; // Ensure model is registered
 import { verifyApiAuth } from '@/lib/apiAuth';
 
 export async function GET(request: NextRequest) {
-    const user = verifyApiAuth(request);
+    const user = await verifyApiAuth(request);
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-    const user = verifyApiAuth(request);
+    const user = await verifyApiAuth(request);
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

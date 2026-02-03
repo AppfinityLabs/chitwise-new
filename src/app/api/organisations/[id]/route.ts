@@ -7,7 +7,7 @@ export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const user = verifyApiAuth(request);
+    const user = await verifyApiAuth(request);
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -30,7 +30,7 @@ export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const user = verifyApiAuth(request);
+    const user = await verifyApiAuth(request);
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -76,9 +76,9 @@ export async function PUT(
 
     } catch (error: any) {
         console.error("Organisation Update Error:", error);
-        return NextResponse.json({ 
-            error: 'Failed to update organisation', 
-            details: error.message 
+        return NextResponse.json({
+            error: 'Failed to update organisation',
+            details: error.message
         }, { status: 500 });
     }
 }
@@ -87,7 +87,7 @@ export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const user = verifyApiAuth(request);
+    const user = await verifyApiAuth(request);
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -106,16 +106,16 @@ export async function DELETE(
         // Delete the organisation
         await Organisation.findByIdAndDelete(id);
 
-        return NextResponse.json({ 
+        return NextResponse.json({
             message: 'Organisation deleted successfully',
-            deletedOrganisationId: id 
+            deletedOrganisationId: id
         });
 
     } catch (error: any) {
         console.error("Organisation Delete Error:", error);
-        return NextResponse.json({ 
-            error: 'Failed to delete organisation', 
-            details: error.message 
+        return NextResponse.json({
+            error: 'Failed to delete organisation',
+            details: error.message
         }, { status: 500 });
     }
 }

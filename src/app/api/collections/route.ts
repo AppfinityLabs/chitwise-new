@@ -6,7 +6,7 @@ import ChitGroup from '@/models/ChitGroup';
 import { verifyApiAuth } from '@/lib/apiAuth';
 
 export async function GET(request: NextRequest) {
-    const user = verifyApiAuth(request);
+    const user = await verifyApiAuth(request);
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 import mongoose from 'mongoose';
 
 export async function POST(request: NextRequest) {
-    const user = verifyApiAuth(request);
+    const user = await verifyApiAuth(request);
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

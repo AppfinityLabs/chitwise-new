@@ -11,7 +11,7 @@ export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const user = verifyApiAuth(request);
+    const user = await verifyApiAuth(request);
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -67,7 +67,7 @@ export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const user = verifyApiAuth(request);
+    const user = await verifyApiAuth(request);
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -102,18 +102,18 @@ export async function DELETE(
         await session.commitTransaction();
         session.endSession();
 
-        return NextResponse.json({ 
+        return NextResponse.json({
             message: 'Group and all related data deleted successfully',
-            deletedGroupId: id 
+            deletedGroupId: id
         });
 
     } catch (error: any) {
         await session.abortTransaction();
         session.endSession();
         console.error("Group Delete Error:", error);
-        return NextResponse.json({ 
-            error: 'Failed to delete group', 
-            details: error.message 
+        return NextResponse.json({
+            error: 'Failed to delete group',
+            details: error.message
         }, { status: 500 });
     }
 }
@@ -122,7 +122,7 @@ export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const user = verifyApiAuth(request);
+    const user = await verifyApiAuth(request);
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -170,9 +170,9 @@ export async function PUT(
 
     } catch (error: any) {
         console.error("Group Update Error:", error);
-        return NextResponse.json({ 
-            error: 'Failed to update group', 
-            details: error.message 
+        return NextResponse.json({
+            error: 'Failed to update group',
+            details: error.message
         }, { status: 500 });
     }
 }

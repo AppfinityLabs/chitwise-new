@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-in-production';
@@ -9,6 +9,7 @@ export interface JWTPayload {
     email: string;
     role: string;
     organisationId?: string;
+    [key: string]: any; // Allow other properties from jwtVerify
 }
 
 /**
@@ -29,18 +30,22 @@ export async function comparePassword(password: string, hashedPassword: string):
 /**
  * Generate a JWT token
  */
-export function signToken(payload: JWTPayload): string {
-    return jwt.sign(payload, JWT_SECRET, {
-        expiresIn: JWT_EXPIRES_IN
-    } as jwt.SignOptions);
+export async function signToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): Promise<string> {
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    return new SignJWT(payload)
+        .setProtectedHeader({ alg: 'HS256' })
+        .setExpirationTime(JWT_EXPIRES_IN)
+        .sign(secret);
 }
 
 /**
  * Verify and decode a JWT token
  */
-export function verifyToken(token: string): JWTPayload | null {
+export async function verifyToken(token: string): Promise<JWTPayload | null> {
     try {
-        return jwt.verify(token, JWT_SECRET) as JWTPayload;
+        const secret = new TextEncoder().encode(JWT_SECRET);
+        const { payload } = await jwtVerify(token, secret);
+        return payload as unknown as JWTPayload;
     } catch {
         return null;
     }
@@ -64,7 +69,7 @@ export function getTokenFromCookies(cookies: string | null): string | null {
 /**
  * Verify user from request cookies
  */
-export function verifyUserFromRequest(cookieHeader: string | null): JWTPayload | null {
+export async function verifyUserFromRequest(cookieHeader: string | null): Promise<JWTPayload | null> {
     const token = getTokenFromCookies(cookieHeader);
     if (!token) return null;
 

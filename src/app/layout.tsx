@@ -19,7 +19,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <body className="bg-background text-foreground min-h-screen flex antialiased selection:bg-indigo-500/30">
+            <body className="bg-background text-foreground min-h-screen flex antialiased selection:bg-indigo-500/30" suppressHydrationWarning={true}>
                 <AuthProvider>
                     <LayoutClient>
                         {children}

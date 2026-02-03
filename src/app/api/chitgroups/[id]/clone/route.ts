@@ -7,7 +7,7 @@ export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const user = verifyApiAuth(request);
+    const user = await verifyApiAuth(request);
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -49,9 +49,9 @@ export async function POST(
 
     } catch (error: any) {
         console.error("Group Clone Error:", error);
-        return NextResponse.json({ 
-            error: 'Failed to clone group', 
-            details: error.message 
+        return NextResponse.json({
+            error: 'Failed to clone group',
+            details: error.message
         }, { status: 500 });
     }
 }

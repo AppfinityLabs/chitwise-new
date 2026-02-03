@@ -26,31 +26,38 @@ export default function DashboardStats({ data }: { data: any }) {
         </div>
     );
 
+    const {
+        activeGroups = 0,
+        totalCollections = 0,
+        activeMembers = 0,
+        pendingDues = 0
+    } = data?.stats || {};
+
     const stats = [
         {
             label: 'Total Active Groups',
-            value: data.stats.activeGroups,
+            value: activeGroups,
             change: 'Running Now',
             icon: Layers,
             color: 'from-blue-500 to-cyan-500',
         },
         {
             label: 'Total Collections',
-            value: `₹ ${data.stats.totalCollections.toLocaleString()}`,
+            value: `₹ ${totalCollections.toLocaleString()}`,
             change: 'Lifetime',
             icon: DollarSign,
             color: 'from-emerald-500 to-green-500',
         },
         {
             label: 'Active Members',
-            value: data.stats.activeMembers,
+            value: activeMembers,
             change: 'In Directory',
             icon: Users,
             color: 'from-violet-500 to-purple-500',
         },
         {
             label: 'Pending Dues',
-            value: `₹ ${data.stats.pendingDues.toLocaleString()}`,
+            value: `₹ ${pendingDues.toLocaleString()}`,
             change: 'To Collect',
             icon: Activity,
             color: 'from-rose-500 to-red-500',

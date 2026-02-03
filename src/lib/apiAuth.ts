@@ -5,10 +5,10 @@ import { verifyUserFromRequest } from './auth';
  * Verify authentication for API routes
  * Returns the decoded JWT payload or null if unauthorized
  */
-export function verifyApiAuth(request: NextRequest) {
+export async function verifyApiAuth(request: NextRequest) {
     const cookieHeader = request.headers.get('cookie');
-    const decoded = verifyUserFromRequest(cookieHeader);
-    
+    const decoded = await verifyUserFromRequest(cookieHeader);
+
     return decoded;
 }
 

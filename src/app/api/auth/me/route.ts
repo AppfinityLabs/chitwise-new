@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     try {
         // Verify token from cookies
         const cookieHeader = request.headers.get('cookie');
-        const decoded = verifyUserFromRequest(cookieHeader);
+        const decoded = await verifyUserFromRequest(cookieHeader);
 
         if (!decoded) {
             return NextResponse.json(
