@@ -814,6 +814,342 @@ ChitWise ഒരു **Chit Fund Management System** ആണ്. ഇതിന്റ
 
 ---
 
+## 13. Real-World Scenarios (പ്രായോഗിക സാഹചര്യങ്ങൾ)
+
+ഇനി നമ്മൾ യഥാർത്ഥ ജീവിതത്തിൽ സംഭവിക്കുന്ന സാഹചര്യങ്ങൾ നോക്കാം:
+
+---
+
+### 🕐 Late Joiner Scenarios (വൈകി ചേരുന്നവർ)
+
+#### TC-REAL-001: Member Joins After 3 Months
+| Field | Value |
+|-------|-------|
+| **Scenario** | Raju joins a 20-month chit that started 3 months ago |
+| **Setup** | Group: Started Jan 2026, Current Period: 4 (April 2026) <br> Contribution: ₹5,000/month, Total Periods: 20 |
+| **Challenge** | How to calculate dues? Does he pay arrears? |
+| **Option A - No Arrears** | Join at Period 4, Total Due = 5000 × 17 remaining = ₹85,000 |
+| **Option B - Full Arrears** | Must pay 3 months arrears = ₹15,000 + ongoing |
+| **Business Decision** | System should support configurable join policy |
+| **Current System Behavior** | `totalDue = contribution × units × totalPeriods` (full) |
+| **Test** | Verify joinDate is recorded, pendingAmount calculation |
+
+#### TC-REAL-002: Late Joiner with Arrears Payment Plan
+| Field | Value |
+|-------|-------|
+| **Scenario** | Late joiner agrees to pay arrears in installments |
+| **Setup** | 3 months arrears = ₹15,000, agrees to pay ₹5,000 extra per month |
+| **Expected** | System should track: Regular Due + Arrears Due separately |
+| **Note** | Current system doesn't differentiate - enhancement needed |
+
+#### TC-REAL-003: Mid-Chit Vacancy Fill
+| Field | Value |
+|-------|-------|
+| **Scenario** | Original member exits, new member takes over slot |
+| **Setup** | Member A exits at Period 5, Member B takes over |
+| **Expected** | New subscription created from Period 6, previous records archived |
+
+---
+
+### 💰 Partial Payment Scenarios (ഭാഗിക പേയ്മെന്റ്)
+
+#### TC-REAL-004: Member Pays Only Half Amount
+| Field | Value |
+|-------|-------|
+| **Scenario** | Daily payer pays only ₹100 instead of ₹167 |
+| **Setup** | Daily due: ₹166.67, Member pays: ₹100 |
+| **Expected Result** | Collection recorded with amountPaid = 100 <br> pendingAmount decreases by 100 <br> System should flag shortfall |
+| **Overdue Impact** | Accumulated shortfall adds to overdue |
+| **API Call** | `POST /api/collections { amountPaid: 100, amountDue: 166.67 }` |
+
+#### TC-REAL-005: Member Skips Days Then Pays Lump Sum
+| Field | Value |
+|-------|-------|
+| **Scenario** | Daily payer misses 5 days, then pays ₹1,000 at once |
+| **Setup** | Daily due: ₹167, Missed 5 days = ₹835 due |
+| **Expected** | Single collection of ₹1,000 recorded <br> Covers missed + advance |
+| **Question** | Should this be 1 collection or multiple? (Business rule) |
+
+#### TC-REAL-006: Member Consistently Underpays
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member pays ₹150/day instead of ₹167 for 30 days |
+| **Monthly Shortfall** | (167-150) × 30 = ₹510 per month |
+| **After 6 Months** | Accumulated shortfall = ₹3,060 |
+| **Expected** | Overdue calculation should show this deficit |
+
+#### TC-REAL-007: Emergency Partial Payment
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member has emergency, can only pay ₹2,000 instead of ₹5,000 this month |
+| **Expected** | Collection recorded, remarks: "Emergency - partial payment" <br> Balance ₹3,000 added to arrears |
+
+---
+
+### 🚫 Defaulter Scenarios (ഡിഫോൾട്ടർ)
+
+#### TC-REAL-008: Member Becomes Defaulter
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member hasn't paid for 2 months |
+| **Setup** | Current Period: 5, Last payment: Period 3 |
+| **Overdue** | Expected: 5 × 5000 = ₹25,000, Paid: ₹15,000 <br> Overdue = ₹10,000 |
+| **Expected** | Flagged as defaulter, visible in pending dues list |
+
+#### TC-REAL-009: Defaulter Clears Arrears
+| Field | Value |
+|-------|-------|
+| **Scenario** | Defaulter pays all arrears at once |
+| **Setup** | Overdue: ₹10,000, Member pays ₹10,000 |
+| **Expected** | Overdue becomes 0, status back to normal |
+
+#### TC-REAL-010: Chronic Defaulter - Multiple Months
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member consistently behind for 6+ months |
+| **Business Decision** | Should subscription status change to DEFAULTED? |
+| **Expected Action** | Admin should be able to mark status manually |
+
+#### TC-REAL-011: Defaulter Cannot Win Draw
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member with significant arrears enters lottery |
+| **Business Rule** | Defaulters typically ineligible for winning |
+| **Expected** | System should validate arrears before allowing winner entry |
+
+---
+
+### 🏃 Early Exit Scenarios (നേരത്തെ പോകുന്നവർ)
+
+#### TC-REAL-012: Member Wants to Exit Before Completion
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member at Period 8 wants to exit 20-month chit |
+| **Paid So Far** | ₹40,000 (8 × ₹5,000) |
+| **Won Prize?** | No |
+| **Expected Options** | A) Forfeit some amount as penalty <br> B) Find replacement member <br> C) Continue with reduced involvement |
+
+#### TC-REAL-013: Winner Wants to Exit After Winning
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member won ₹95,000 at Period 3, wants to exit |
+| **Remaining Obligation** | 17 × ₹5,000 = ₹85,000 |
+| **Challenge** | They've received more than paid, must continue |
+| **Expected** | Cannot exit until payments cover prize received |
+
+#### TC-REAL-014: Non-Winner Exit with Refund
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member exits without ever winning, wants refund |
+| **Paid** | ₹60,000 over 12 months |
+| **Expected** | Partial refund after deducting admin fees |
+
+---
+
+### 🔄 Multiple Subscription Scenarios (ഒന്നിലധികം സബ്സ്ക്രിപ്ഷൻ)
+
+#### TC-REAL-015: Same Member, Multiple Units in Same Group
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member holds 3 units in ₹1 Lakh group |
+| **Setup** | units = 3, contribution = ₹5,000 |
+| **Monthly Due** | 3 × ₹5,000 = ₹15,000 |
+| **Total Obligation** | ₹15,000 × 20 = ₹3,00,000 |
+| **Can Win Multiple?** | Yes, can win 3 times proportionally |
+
+#### TC-REAL-016: Same Member, Different Groups
+| Field | Value |
+|-------|-------|
+| **Scenario** | Raju is in Group A (₹1L) and Group B (₹50K) |
+| **Subscriptions** | 2 separate GroupMember records |
+| **Collections** | Must be tracked separately per subscription |
+| **Challenge** | Agent collects combined ₹7,500 - how to split? |
+
+#### TC-REAL-017: Half Unit Subscription
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member takes 0.5 units (half share) |
+| **Setup** | units = 0.5, contribution = ₹5,000 |
+| **Monthly Due** | ₹2,500 |
+| **Prize Calculation** | If wins: 0.5 × (Pot - Commission) = 0.5 × ₹95,000 = ₹47,500 |
+
+---
+
+### 🎰 Draw/Winner Edge Cases (ഡ്രോ എഡ്ജ് കേസുകൾ)
+
+#### TC-REAL-018: All Eligible Members Refuse to Bid
+| Field | Value |
+|-------|-------|
+| **Scenario** | Auction draw, but no one wants to bid discount |
+| **Expected** | Fall back to lottery for full pot |
+
+#### TC-REAL-019: Winner Has Outstanding Dues
+| Field | Value |
+|-------|-------|
+| **Scenario** | Winner has ₹10,000 arrears |
+| **Prize** | ₹95,000 |
+| **Option** | Deduct arrears from prize: ₹95,000 - ₹10,000 = ₹85,000 net |
+
+#### TC-REAL-020: Multiple Small Unit Holders Win Same Period
+| Field | Value |
+|-------|-------|
+| **Scenario** | Two 0.5 unit holders, one draw |
+| **Expected** | Only one can win per draw, other waits |
+
+#### TC-REAL-021: Winner Declines Prize
+| Field | Value |
+|-------|-------|
+| **Scenario** | Lottery winner doesn't want prize now (prefer later) |
+| **Expected** | Re-draw or mark as declined, conduct new lottery |
+
+---
+
+### 📅 Collection Timing Scenarios (കളക്ഷൻ ടൈമിംഗ്)
+
+#### TC-REAL-022: Weekend/Holiday Collection
+| Field | Value |
+|-------|-------|
+| **Scenario** | Daily collector skips Saturday/Sunday |
+| **Monthly Collections** | 30 days but only ~22 working days |
+| **Collection Factor Issue** | Factor 30, but only 22 collections possible |
+| **Solution** | Higher amount on working days or factor adjustment |
+
+#### TC-REAL-023: Advance Payment for Next Month
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member pays ₹10,000 - this month (₹5,000) + next month |
+| **Expected** | Record as Period 1 + Period 2 collections <br> Or record as single collection covering both |
+
+#### TC-REAL-024: Back-dated Collection Entry
+| Field | Value |
+|-------|-------|
+| **Scenario** | Agent forgot to record yesterday's collection |
+| **Expected** | Allow backdated entry with correct periodDate |
+| **API** | `{ periodDate: "2026-02-07", ... }` |
+
+#### TC-REAL-025: End of Month Rush
+| Field | Value |
+|-------|-------|
+| **Scenario** | 10 members pay on last day of month |
+| **Expected** | All 10 collections recorded for same basePeriodNumber |
+
+---
+
+### 💵 Payment Mode Complications (പേയ്മെന്റ് മോഡ് പ്രശ്നങ്ങൾ)
+
+#### TC-REAL-026: Cheque Bounce
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member's cheque bounces after collection recorded |
+| **Current Status** | Collection marked as PAID |
+| **Expected** | Need ability to mark as FAILED or reverse entry |
+| **Impact** | Recalculate pendingAmount, add penalties |
+
+#### TC-REAL-027: UPI Transaction Pending
+| Field | Value |
+|-------|-------|
+| **Scenario** | UPI shows pending, not confirmed |
+| **Expected** | Should mark as PENDING status, not PAID |
+
+#### TC-REAL-028: Cash + UPI Split Payment
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member pays ₹3,000 cash + ₹2,000 UPI |
+| **Challenge** | Single collection with split modes |
+| **Current Limitation** | One paymentMode per collection |
+| **Workaround** | Two separate collection entries |
+
+---
+
+### 🔢 Calculation Edge Cases (കണക്കുകൂട്ടൽ എഡ്ജ് കേസുകൾ)
+
+#### TC-REAL-029: Fractional Amount Rounding
+| Field | Value |
+|-------|-------|
+| **Scenario** | ₹5,000 / 30 days = ₹166.666... |
+| **Challenge** | How to handle fractions? |
+| **Options** | Round to ₹167 daily, adjust last day <br> Or ₹166 daily + ₹180 on day 30 |
+
+#### TC-REAL-030: Leap Year February
+| Field | Value |
+|-------|-------|
+| **Scenario** | February 2028 has 29 days |
+| **Monthly Factor** | 28 or 29 or still 30? |
+| **Expected** | Business rule: use standard 30 or actual days |
+
+#### TC-REAL-031: Group Period Advancement
+| Field | Value |
+|-------|-------|
+| **Scenario** | When does currentPeriod increment? |
+| **Options** | A) After draw B) After month end C) Manual |
+| **Impact** | Affects overdue calculation for all members |
+
+---
+
+### 🆘 Emergency Scenarios (അടിയന്തര സാഹചര്യങ്ങൾ)
+
+#### TC-REAL-032: Member Death
+| Field | Value |
+|-------|-------|
+| **Scenario** | Active member passes away mid-chit |
+| **Has Won?** | Check if already received prize |
+| **Pending** | Transfer to nominee or family |
+| **Expected** | Mark member as special status, nominee takes over |
+
+#### TC-REAL-033: Organisation Closure
+| Field | Value |
+|-------|-------|
+| **Scenario** | Chit company closes mid-operation |
+| **Expected** | All groups marked SUSPENDED, member dues calculated |
+
+#### TC-REAL-034: System Downtime Recovery
+| Field | Value |
+|-------|-------|
+| **Scenario** | System down for 2 days, collections happened offline |
+| **Expected** | Bulk import feature needed with backdated entries |
+
+---
+
+### 📊 Reporting Scenarios (റിപ്പോർട്ടിംഗ്)
+
+#### TC-REAL-035: Agent Daily Collection Report
+| Field | Value |
+|-------|-------|
+| **Scenario** | Agent needs end-of-day collection summary |
+| **Expected** | Date filter, total collected, member-wise breakdown |
+
+#### TC-REAL-036: Defaulter List Export
+| Field | Value |
+|-------|-------|
+| **Scenario** | Admin needs list of all defaulters with amounts |
+| **Expected** | Filter by overdue > ₹X, export to Excel/PDF |
+
+#### TC-REAL-037: Member Statement
+| Field | Value |
+|-------|-------|
+| **Scenario** | Member asks for payment history |
+| **Expected** | All collections for specific groupMemberId, printable format |
+
+---
+
+## Summary: Real-World Scenario Categories
+
+| Category | Count | Key Challenges |
+|----------|-------|----------------|
+| Late Joiners | 3 | Arrears calculation, mid-join policy |
+| Partial Payments | 4 | Shortfall tracking, lump sum handling |
+| Defaulters | 4 | Status management, winner eligibility |
+| Early Exits | 3 | Refund calculation, winner obligation |
+| Multiple Subscriptions | 3 | Split collections, multi-unit wins |
+| Draw Edge Cases | 4 | Declined prizes, arrears deduction |
+| Collection Timing | 4 | Holidays, advance payments, backdating |
+| Payment Mode Issues | 3 | Bounced cheques, split payments |
+| Calculations | 3 | Rounding, leap year, period advancement |
+| Emergencies | 3 | Death, closure, system recovery |
+| Reporting | 3 | Agent reports, statements, exports |
+
+---
+
 ## Summary: Collection Factor Logic Table
 
 | Group Frequency | Collection Pattern | Collection Factor | Amount Per Collection |
