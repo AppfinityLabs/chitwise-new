@@ -72,10 +72,12 @@ export async function POST(request: NextRequest) {
         );
 
         // Set httpOnly cookie with token
+        // sameSite: 'none' is required for cross-origin requests (PWA on different domain)
+        // secure: true is required when sameSite is 'none'
         response.cookies.set('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: true,
+            sameSite: 'none',
             maxAge: 60 * 60 * 24 * 7, // 7 days
             path: '/'
         });
