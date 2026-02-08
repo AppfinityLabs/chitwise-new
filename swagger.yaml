@@ -30,32 +30,132 @@ info:
 servers:
   - url: http://localhost:3000/api
     description: Development server
-  - url: https://your-domain.com/api
+  - url: https://chitwise-new.vercel.app/api
     description: Production server
 
 tags:
-  - name: Authentication
-    description: User authentication endpoints (All Users)
-  - name: Super Admin - Users
-    description: User management endpoints (Super Admin Only)
-  - name: Super Admin - Organisations
-    description: Organisation management endpoints (Super Admin Only)
-  - name: Chit Groups
-    description: Chit group management (Both Roles - Scoped by Organisation for ORG_ADMIN)
-  - name: Members
-    description: Member management (Both Roles - Scoped by Organisation for ORG_ADMIN)
-  - name: Group Members
-    description: Member subscriptions to chit groups (Both Roles - Scoped by Organisation for ORG_ADMIN)
-  - name: Collections
-    description: Payment collection management (Both Roles - Scoped by Organisation for ORG_ADMIN)
-  - name: Winners
-    description: Draw winner management (Both Roles - Scoped by Organisation for ORG_ADMIN)
-  - name: Dashboard
-    description: Dashboard statistics (Both Roles - Scoped by Organisation for ORG_ADMIN)
-  - name: Reports
-    description: Analytics and reports (Both Roles - Scoped by Organisation for ORG_ADMIN)
-  - name: System
-    description: System utility endpoints
+  # =====================================================
+  # 🔓 PUBLIC ENDPOINTS (No Authentication Required)
+  # =====================================================
+  - name: 🔓 Public - 🔓 Public - Authentication
+    description: |
+      **Access Level: PUBLIC**
+      
+      These endpoints are accessible without authentication.
+      Used for logging in and seeding initial data.
+
+  # =====================================================
+  # 👑 SUPER ADMIN ONLY ENDPOINTS
+  # =====================================================
+  - name: 👑 Super Admin - User Management
+    description: |
+      **Access Level: SUPER ADMIN ONLY**
+      
+      ⚠️ These endpoints are restricted to Super Admin users only.
+      Org Admins will receive a 403 Forbidden error if they attempt to access these.
+      
+      - Create, update, delete user accounts
+      - Assign users to organisations
+      - Manage user roles and permissions
+      
+  - name: 👑 Super Admin - Organisation Management
+    description: |
+      **Access Level: SUPER ADMIN ONLY**
+      
+      ⚠️ These endpoints are restricted to Super Admin users only.
+      Org Admins will receive a 403 Forbidden error if they attempt to access these.
+      
+      - Create, update, delete organisations
+      - Manage organisation settings and details
+      - View all organisations in the system
+
+  # =====================================================
+  # 🏢 ORG ADMIN ENDPOINTS (Core Operations)
+  # =====================================================
+  - name: 🏢 Org Admin - 🏢 Org Admin - Chit Groups
+    description: |
+      **Access Level: ORG ADMIN & SUPER ADMIN**
+      
+      ✅ Org Admins can use these endpoints (scoped to their organisation only).
+      Super Admins can access all organisations' data.
+      
+      - Create, update, delete chit groups
+      - Manage group settings and schedules
+      - View group details and status
+      
+  - name: 🏢 Org Admin - 🏢 Org Admin - Members
+    description: |
+      **Access Level: ORG ADMIN & SUPER ADMIN**
+      
+      ✅ Org Admins can use these endpoints (scoped to their organisation only).
+      Super Admins can access all organisations' data.
+      
+      - Register new members
+      - Update member information
+      - Manage member status and KYC
+      
+  - name: 🏢 Org Admin - Group Members (Subscriptions)
+    description: |
+      **Access Level: ORG ADMIN & SUPER ADMIN**
+      
+      ✅ Org Admins can use these endpoints (scoped to their organisation only).
+      Super Admins can access all organisations' data.
+      
+      - Add members to chit groups
+      - Manage subscription units and patterns
+      - Track member participation
+      
+  - name: 🏢 Org Admin - 🏢 Org Admin - Collections
+    description: |
+      **Access Level: ORG ADMIN & SUPER ADMIN**
+      
+      ✅ Org Admins can use these endpoints (scoped to their organisation only).
+      Super Admins can access all organisations' data.
+      
+      - Record payment collections
+      - Track dues and payments
+      - Manage collection schedules
+      
+  - name: 🏢 Org Admin - Winners (Draws)
+    description: |
+      **Access Level: ORG ADMIN & SUPER ADMIN**
+      
+      ✅ Org Admins can use these endpoints (scoped to their organisation only).
+      Super Admins can access all organisations' data.
+      
+      - Record draw winners
+      - Manage prize payouts
+      - Track lottery/auction results
+      
+  - name: 🏢 Org Admin - 🏢 Org Admin - Dashboard
+    description: |
+      **Access Level: ORG ADMIN & SUPER ADMIN**
+      
+      ✅ Org Admins can use these endpoints (scoped to their organisation only).
+      Super Admins can access all organisations' data.
+      
+      - View dashboard statistics
+      - Quick overview of key metrics
+      
+  - name: 🏢 Org Admin - 🏢 Org Admin - Reports
+    description: |
+      **Access Level: ORG ADMIN & SUPER ADMIN**
+      
+      ✅ Org Admins can use these endpoints (scoped to their organisation only).
+      Super Admins can access all organisations' data.
+      
+      - Analytics and trend reports
+      - Collection reports
+      - Performance metrics
+
+  # =====================================================
+  # 🔧 UTILITY ENDPOINTS
+  # =====================================================
+  - name: 🔧 System Utilities
+    description: |
+      **Access Level: VARIES**
+      
+      System utility endpoints for seeding data and maintenance.
 
 components:
   securitySchemes:
@@ -255,61 +355,158 @@ components:
     # =====================================================
     ChitGroup:
       type: object
+      description: |
+        A Chit Group represents a savings scheme where members contribute a fixed amount periodically.
+        
+        ## Business Logic
+        - **Prize Pool**: `contributionAmount × totalUnits` = Total amount collected per period
+        - **Winner Payout**: Prize Pool - Commission = Amount winner receives
+        - **Total Chit Value**: `contributionAmount × totalUnits × totalPeriods`
+        - **Current Period**: Auto-calculated based on `startDate` and `frequency`
+        
+        ## Example Calculation
+        For a group with `contributionAmount=2000`, `totalUnits=52`, `commissionValue=4000`:
+        - Per period collection: 2000 × 52 = ₹1,04,000
+        - Winner receives: 1,04,000 - 4,000 = ₹1,00,000
       properties:
         _id:
           type: string
+          description: MongoDB ObjectId - unique identifier
           example: "507f1f77bcf86cd799439013"
         groupName:
           type: string
+          description: |
+            Unique identifier name for the group. 
+            Common naming convention: `{TotalPeriods}{Frequency}-{ContributionAmount}-{Year}`
           example: "52W-2000-2024"
         description:
           type: string
-          example: "Weekly chit group for 52 weeks"
+          description: Optional descriptive text about the group
+          example: "Weekly chit group for 52 weeks starting January 2024"
         frequency:
           type: string
           enum: [DAILY, WEEKLY, MONTHLY]
+          description: |
+            How often a draw is conducted:
+            - **DAILY**: Draw happens every day
+            - **WEEKLY**: Draw happens once a week
+            - **MONTHLY**: Draw happens once a month
           example: "WEEKLY"
         contributionAmount:
           type: number
+          description: |
+            Amount each member must pay per period PER UNIT.
+            
+            **Formula**: `contributionAmount × units = Member's payment per period`
+            
+            Example: If contributionAmount=2000 and member has 2 units, they pay ₹4000/period
+          minimum: 1
           example: 2000
         totalUnits:
           type: integer
+          description: |
+            Total number of subscription units available in this group.
+            
+            - Usually equals `totalPeriods` (one winner per period)
+            - Can be split among members (e.g., 0.5 units, 1.5 units)
+            - Each unit entitles member to participate in draws proportionally
+          minimum: 1
           example: 52
         totalPeriods:
           type: integer
+          description: |
+            Total number of periods (draws) in the chit cycle.
+            
+            - WEEKLY groups: Usually 52 periods (1 year)
+            - MONTHLY groups: Usually 12 or 24 periods
+            - Each period has exactly one draw/winner
+          minimum: 1
           example: 52
         commissionValue:
           type: number
+          description: |
+            Fixed commission amount deducted from prize pool each period.
+            
+            **Winner Payout Formula**: `(contributionAmount × totalUnits) - commissionValue`
+            
+            This is the organizer's earning per draw.
+          minimum: 0
           example: 4000
         allowCustomCollectionPattern:
           type: boolean
           default: false
+          description: |
+            If true, members can choose their own collection schedule (DAILY/WEEKLY/MONTHLY).
+            If false, all members follow the group's frequency.
+            
+            Example: A MONTHLY group might allow WEEKLY collections for convenience.
         subscriptionAmount:
           type: number
+          description: |
+            One-time joining fee charged when a member subscribes.
+            Optional - set to 0 or omit if not applicable.
+          example: 500
         subscriptionFrequency:
           type: string
           enum: [DAILY, WEEKLY, MONTHLY]
+          description: |
+            Frequency for collecting subscription amount.
+            Usually same as `frequency`, but can differ for custom patterns.
         startDate:
           type: string
           format: date-time
+          description: |
+            Date when the first period begins.
+            
+            - Current period is auto-calculated based on this date
+            - End date is auto-calculated: `startDate + (totalPeriods × frequency interval)`
+          example: "2024-01-01T00:00:00.000Z"
         endDate:
           type: string
           format: date-time
+          description: |
+            Auto-calculated end date of the chit cycle.
+            
+            **Calculation**: `startDate + (totalPeriods - 1) × frequency_interval`
+          example: "2024-12-30T00:00:00.000Z"
         currentPeriod:
           type: integer
           default: 1
+          description: |
+            Current active period number (1-indexed).
+            
+            **Auto-calculated** based on current date and start date:
+            - DAILY: Days since startDate + 1
+            - WEEKLY: Weeks since startDate + 1
+            - MONTHLY: Months since startDate + 1
+            
+            Cannot exceed `totalPeriods`.
+          minimum: 1
+          example: 15
         status:
           type: string
           enum: [ACTIVE, CLOSED, SUSPENDED]
+          description: |
+            **ACTIVE**: Group is running, collections and draws happening
+            **CLOSED**: All periods completed, no more activity
+            **SUSPENDED**: Temporarily paused (e.g., disputes, holidays)
+          example: "ACTIVE"
         organisationId:
           type: string
+          description: |
+            Reference to the organisation this group belongs to.
+            
+            - ORG_ADMIN: Auto-set from user's organisation
+            - SUPER_ADMIN: Must provide explicitly
           example: "507f1f77bcf86cd799439012"
         createdAt:
           type: string
           format: date-time
+          description: Timestamp when group was created
         updatedAt:
           type: string
           format: date-time
+          description: Timestamp of last update
 
     CreateChitGroupRequest:
       type: object
@@ -445,47 +642,140 @@ components:
     # =====================================================
     GroupMember:
       type: object
+      description: |
+        A GroupMember represents a member's subscription to a specific chit group.
+        One member can subscribe to multiple groups with different units.
+        
+        ## Business Logic
+        
+        ### Collection Pattern & Factor
+        The `collectionFactor` determines how many times to collect per base period:
+        
+        | Group Frequency | Collection Pattern | Collection Factor |
+        |-----------------|-------------------|-------------------|
+        | MONTHLY | MONTHLY | 1 (collect once) |
+        | MONTHLY | WEEKLY | 4 (collect 4 times) |
+        | MONTHLY | DAILY | 30 (collect 30 times) |
+        | WEEKLY | WEEKLY | 1 (collect once) |
+        | WEEKLY | DAILY | 7 (collect 7 times) |
+        
+        ### Amount Calculations
+        - **Payment per collection**: `(contributionAmount × units) / collectionFactor`
+        - **Total Due**: `contributionAmount × units × currentPeriod`
+        - **Pending Amount**: `totalDue - totalCollected`
+        - **Overdue Amount**: Pending amounts from past periods (dynamically calculated)
+        
+        ### Example
+        Member with 1.5 units in a ₹2000/unit MONTHLY group, collecting WEEKLY:
+        - Monthly due: 2000 × 1.5 = ₹3,000
+        - Weekly collection: 3000 / 4 = ₹750
       properties:
         _id:
           type: string
+          description: MongoDB ObjectId - unique identifier for this subscription
+          example: "507f1f77bcf86cd799439015"
         memberId:
           $ref: '#/components/schemas/Member'
+          description: Reference to the subscribed member (populated with full member object)
         groupId:
           $ref: '#/components/schemas/ChitGroup'
+          description: Reference to the chit group (populated with full group object)
         units:
           type: number
-          description: "Number of units subscribed (e.g., 0.5, 1, 2)"
+          description: |
+            Number of units subscribed by this member.
+            
+            - Can be fractional (0.5, 1.5, etc.)
+            - Determines payment amount and winning eligibility
+            - Total units across all members should not exceed group's `totalUnits`
+            
+            **Payment Formula**: `contributionAmount × units = Payment per period`
+          minimum: 0.1
           example: 1
         collectionPattern:
           type: string
           enum: [DAILY, WEEKLY, MONTHLY]
+          description: |
+            How often this member's payments are collected.
+            
+            - If `allowCustomCollectionPattern` is true, members can choose
+            - If false, defaults to group's frequency
+            
+            **Use Case**: A MONTHLY group might allow WEEKLY collections 
+            for members who prefer smaller, more frequent payments.
         collectionFactor:
           type: integer
-          description: "Derived based on group frequency and collection pattern"
+          description: |
+            Number of collection installments per base period.
+            
+            **Auto-calculated** based on group frequency and collection pattern:
+            - MONTHLY group + WEEKLY collection = 4
+            - WEEKLY group + DAILY collection = 7
+            - Same frequency = 1
+            
+            Used to split period payment into smaller installments.
+          example: 4
         joinDate:
           type: string
           format: date-time
+          description: |
+            Date when member joined this group.
+            
+            - Used to calculate dues (only periods after join date count)
+            - Members joining mid-cycle pay proportionally
+          example: "2024-01-15T00:00:00.000Z"
         totalDue:
           type: number
-          description: "Total amount due for the subscription"
+          description: |
+            Total cumulative amount due from join date till current period.
+            
+            **Formula**: `contributionAmount × units × (currentPeriod - joinPeriod + 1)`
+            
+            Updates automatically as periods progress.
+          example: 30000
         totalCollected:
           type: number
-          description: "Total amount collected so far"
+          description: |
+            Sum of all payments made by this member for this subscription.
+            
+            - Updated when collections are recorded
+            - Includes partial payments
+          example: 25000
         pendingAmount:
           type: number
-          description: "Remaining amount to be collected"
+          description: |
+            Amount still to be collected.
+            
+            **Formula**: `totalDue - totalCollected`
+            
+            This represents the member's outstanding balance.
+          example: 5000
         overdueAmount:
           type: number
-          description: "Dynamically calculated overdue amount"
+          description: |
+            Amount overdue from previous periods (dynamically calculated).
+            
+            This is the portion of `pendingAmount` that was due in past periods
+            but hasn't been collected yet.
+            
+            ⚠️ High overdue amounts may indicate defaulting members.
+          example: 2000
         status:
           type: string
           enum: [ACTIVE, CLOSED, DEFAULTED]
+          description: |
+            **ACTIVE**: Member is currently participating, payments ongoing
+            **CLOSED**: Subscription completed (all periods done or member exited)
+            **DEFAULTED**: Member has stopped paying, flagged for action
+          example: "ACTIVE"
         createdAt:
           type: string
           format: date-time
+          description: Timestamp when subscription was created
         updatedAt:
           type: string
           format: date-time
+          description: Timestamp of last update
 
     CreateGroupMemberRequest:
       type: object
@@ -514,47 +804,149 @@ components:
     # =====================================================
     Collection:
       type: object
+      description: |
+        A Collection record represents a single payment transaction from a member.
+        
+        ## Business Logic
+        
+        ### How Collections Work
+        1. System generates expected collection records based on subscription
+        2. When member pays, the collection is updated with payment details
+        3. Partial payments are allowed (status = PARTIAL)
+        4. Multiple collections can exist per period (based on collectionFactor)
+        
+        ### Collection Sequence
+        For members with collection patterns different from group frequency:
+        - BasePeriodNumber: The chit period (e.g., Period 5 of 52)
+        - CollectionSequence: Which collection within that period (e.g., Week 2 of Month)
+        
+        ### Example
+        Period 5 of a MONTHLY group with WEEKLY collection:
+        - BasePeriodNumber: 5
+        - CollectionSequence: 1, 2, 3, 4 (4 weekly collections in month 5)
+        
+        ### Status Flow
+        ```
+        PENDING → PAID (full payment)
+        PENDING → PARTIAL (amount < due) → PAID (remaining paid)
+        PENDING/PARTIAL → FAILED (payment failed/bounced)
+        ```
       properties:
         _id:
           type: string
+          description: MongoDB ObjectId - unique identifier for this collection
+          example: "507f1f77bcf86cd799439016"
         groupMemberId:
           type: string
+          description: |
+            Reference to the GroupMember subscription.
+            Use this to identify which member's subscription this payment belongs to.
+          example: "507f1f77bcf86cd799439015"
         groupId:
           type: string
+          description: Reference to the chit group (for quick filtering)
+          example: "507f1f77bcf86cd799439013"
         memberId:
           type: string
+          description: Reference to the member (for quick filtering)
+          example: "507f1f77bcf86cd799439014"
         basePeriodNumber:
           type: integer
-          description: "The chit period number"
+          description: |
+            The chit group's period number this collection belongs to.
+            
+            - 1-indexed (Period 1, Period 2, ...)
+            - Cannot exceed group's `totalPeriods`
+            - Used to track which period's dues are being collected
+          minimum: 1
+          example: 5
         collectionSequence:
           type: integer
-          description: "Collection sequence within a period"
+          description: |
+            Sequence number within the base period.
+            
+            For same-frequency collections: always 1
+            For different frequencies:
+            - MONTHLY group + WEEKLY collection: 1-4
+            - WEEKLY group + DAILY collection: 1-7
+            
+            **Formula**: Sequence ranges from 1 to `collectionFactor`
+          minimum: 1
+          example: 2
         periodDate:
           type: string
           format: date-time
+          description: |
+            The date this collection was due/scheduled.
+            
+            - Auto-calculated based on group startDate, period, and sequence
+            - Used for overdue calculations
+          example: "2024-02-15T00:00:00.000Z"
         amountDue:
           type: number
+          description: |
+            Amount that should be collected in this transaction.
+            
+            **Formula**: `(contributionAmount × units) / collectionFactor`
+            
+            Example: ₹3000/month ÷ 4 weeks = ₹750/week
+          example: 750
         amountPaid:
           type: number
+          description: |
+            Actual amount received from the member.
+            
+            - Can be less than amountDue (partial payment)
+            - Can equal amountDue (full payment)
+            - Should not exceed amountDue
+          example: 750
         paymentMode:
           type: string
           enum: [CASH, UPI, CHEQUE, BANK_TRANSFER]
+          description: |
+            Method of payment used:
+            - **CASH**: Physical cash payment
+            - **UPI**: Digital UPI payment (PhonePe, GPay, etc.)
+            - **CHEQUE**: Cheque payment (may take time to clear)
+            - **BANK_TRANSFER**: NEFT/IMPS/RTGS transfer
+          example: "UPI"
         collectedBy:
           type: string
+          description: |
+            User ID of the person who recorded this collection.
+            Automatically set to the logged-in user's ID.
+          example: "507f1f77bcf86cd799439011"
         collectedAt:
           type: string
           format: date-time
+          description: |
+            Actual timestamp when payment was received.
+            May differ from periodDate (scheduled date).
+          example: "2024-02-16T14:30:00.000Z"
         remarks:
           type: string
+          description: |
+            Optional notes about this collection.
+            Useful for recording special circumstances, reasons for delay, etc.
+          example: "Paid via PhonePe, transaction ID: ABC123"
         status:
           type: string
           enum: [PENDING, PAID, PARTIAL, FAILED]
+          description: |
+            Collection status:
+            - **PENDING**: Payment not yet received (default for scheduled collections)
+            - **PAID**: Full payment received (amountPaid >= amountDue)
+            - **PARTIAL**: Only partial amount received (amountPaid < amountDue)
+            - **FAILED**: Payment failed (bounced cheque, reversed UPI, etc.)
+          example: "PAID"
         createdAt:
           type: string
           format: date-time
+          description: Timestamp when this collection record was created
         updatedAt:
           type: string
           format: date-time
+          description: Timestamp of last update (e.g., when payment was recorded)
 
     CreateCollectionRequest:
       type: object
@@ -584,40 +976,146 @@ components:
     # =====================================================
     Winner:
       type: object
+      description: |
+        A Winner record represents the outcome of a draw for a specific period.
+        Each period has exactly one draw, and one or more members can win.
+        
+        ## Business Logic
+        
+        ### Draw Process
+        1. At the end of each period, a draw is conducted
+        2. One member is selected (lottery) or wins bidding (auction)
+        3. Winner receives the prize pool minus commission
+        4. Winner record is created with payout details
+        
+        ### Prize Calculation
+        ```
+        Prize Pool = contributionAmount × totalUnits
+        Commission = commissionValue (fixed per period)
+        Winner Payout = Prize Pool - Commission
+        ```
+        
+        ### Example
+        For a group with `contributionAmount=2000`, `totalUnits=52`, `commissionValue=4000`:
+        - Prize Pool: 2000 × 52 = ₹1,04,000
+        - Winner receives: 1,04,000 - 4,000 = ₹1,00,000
+        
+        ### Selection Methods
+        - **LOTTERY**: Random selection among eligible non-winners
+        - **AUCTION**: Lowest bidder wins (offers discount = higher commission)
+        
+        ### Winning Units
+        A member can win partially based on their subscribed units:
+        - Member with 2 units can win 2 times (once per unit)
+        - Or win both units in a single draw (winningUnits = 2)
       properties:
         _id:
           type: string
+          description: MongoDB ObjectId - unique identifier for this winner record
+          example: "507f1f77bcf86cd799439017"
         groupId:
           type: string
+          description: Reference to the chit group where draw was conducted
+          example: "507f1f77bcf86cd799439013"
         groupMemberId:
           type: string
+          description: |
+            Reference to the winning member's subscription.
+            Identifies which subscription units won.
+          example: "507f1f77bcf86cd799439015"
         memberId:
           type: string
+          description: Reference to the winning member (for quick filtering)
+          example: "507f1f77bcf86cd799439014"
         basePeriodNumber:
           type: integer
+          description: |
+            The period number for which this draw was conducted.
+            
+            - Each period has exactly one draw
+            - Cannot be greater than group's `totalPeriods`
+            - Used to ensure no duplicate draws for same period
+          minimum: 1
+          example: 15
         winningUnits:
           type: number
+          description: |
+            Number of units won in this draw.
+            
+            - Usually 1 (one unit per draw)
+            - Can be higher if member wins multiple units at once
+            - Cannot exceed member's remaining unwon units
+            
+            **Prize Scaling**: Prize is proportional to winning units
+          minimum: 0.1
+          example: 1
         prizeAmount:
           type: number
+          description: |
+            Amount to be paid to the winner.
+            
+            **Formula**: `(contributionAmount × totalUnits - commissionValue) × winningUnits`
+            
+            For auctions, this may be lower if winner offered a discount.
+          example: 100000
         selectionMethod:
           type: string
           enum: [LOTTERY, AUCTION]
+          description: |
+            How the winner was selected:
+            
+            - **LOTTERY**: Random selection from eligible members
+              - All non-winner members with unpaid units are eligible
+              - Fair random selection
+            
+            - **AUCTION**: Bidding process
+              - Members bid by offering to forgo part of prize (discount)
+              - Highest discount bidder wins
+              - Commission is higher in auctions (base + discount)
+          example: "LOTTERY"
         commissionEarned:
           type: number
+          description: |
+            Commission earned by organizer from this draw.
+            
+            **For Lottery**: Equal to `commissionValue` from group
+            **For Auction**: `commissionValue + winner's discount offer`
+            
+            Example: Base ₹4000 + Auction discount ₹2000 = ₹6000 earned
+          example: 4000
         payoutDate:
           type: string
           format: date-time
+          description: |
+            Date when the prize was/will be paid to winner.
+            
+            - Can be set at draw time or updated later
+            - Used for financial tracking and reports
+          example: "2024-04-10T00:00:00.000Z"
         status:
           type: string
           enum: [PENDING, PAID, FORFEITED]
+          description: |
+            Payout status:
+            
+            - **PENDING**: Draw completed, payout not yet done
+            - **PAID**: Prize amount has been paid to winner
+            - **FORFEITED**: Winner forfeited prize (rare, usually due to default)
+          example: "PAID"
         remarks:
           type: string
+          description: |
+            Optional notes about this draw or payout.
+            Useful for recording auction details, payment references, etc.
+          example: "Prize paid via bank transfer, Ref: NEFT123456"
         createdAt:
           type: string
           format: date-time
+          description: Timestamp when draw was conducted
         updatedAt:
           type: string
           format: date-time
+          description: Timestamp of last update (e.g., when payout was recorded)
 
     CreateWinnerRequest:
       type: object
@@ -754,7 +1252,7 @@ paths:
   /auth/login:
     post:
       tags:
-        - Authentication
+        - 🔓 Public - Authentication
       summary: User Login
       description: |
         Authenticate a user and receive a JWT token stored in an HTTP-only cookie.
@@ -817,7 +1315,7 @@ paths:
   /auth/logout:
     post:
       tags:
-        - Authentication
+        - 🔓 Public - Authentication
       summary: User Logout
       description: |
         Logout the current user by clearing the authentication cookie.
@@ -838,7 +1336,7 @@ paths:
   /auth/me:
     get:
       tags:
-        - Authentication
+        - 🔓 Public - Authentication
       summary: Get Current User
       description: |
         Retrieve the currently authenticated user's profile.
@@ -878,7 +1376,7 @@ paths:
   /users:
     get:
       tags:
-        - Super Admin - Users
+        - 👑 Super Admin - User Management
       summary: List All Users
       description: |
         Retrieve all users in the system.
@@ -900,7 +1398,7 @@ paths:
 
     post:
       tags:
-        - Super Admin - Users
+        - 👑 Super Admin - User Management
       summary: Create New User
       description: |
         Create a new user account. When creating an ORG_ADMIN, an organisationId must be provided.
@@ -931,7 +1429,7 @@ paths:
   /users/{id}:
     get:
       tags:
-        - Super Admin - Users
+        - 👑 Super Admin - User Management
       summary: Get User by ID
       description: |
         Retrieve a specific user by their ID.
@@ -959,7 +1457,7 @@ paths:
 
     put:
       tags:
-        - Super Admin - Users
+        - 👑 Super Admin - User Management
       summary: Update User
       description: |
         Update an existing user's information.
@@ -997,7 +1495,7 @@ paths:
 
     delete:
       tags:
-        - Super Admin - Users
+        - 👑 Super Admin - User Management
       summary: Delete User
       description: |
         Delete a user from the system.
@@ -1035,7 +1533,7 @@ paths:
   /organisations:
     get:
       tags:
-        - Super Admin - Organisations
+        - 👑 Super Admin - Organisation Management
       summary: List All Organisations
       description: |
         Retrieve all organisations in the system.
@@ -1057,7 +1555,7 @@ paths:
 
     post:
       tags:
-        - Super Admin - Organisations
+        - 👑 Super Admin - Organisation Management
       summary: Create New Organisation
       description: |
         Create a new organisation.
@@ -1086,7 +1584,7 @@ paths:
   /organisations/{id}:
     get:
       tags:
-        - Super Admin - Organisations
+        - 👑 Super Admin - Organisation Management
       summary: Get Organisation by ID
       description: |
         Retrieve a specific organisation by ID.
@@ -1112,7 +1610,7 @@ paths:
 
     put:
       tags:
-        - Super Admin - Organisations
+        - 👑 Super Admin - Organisation Management
       summary: Update Organisation
       description: |
         Update an organisation's information.
@@ -1149,7 +1647,7 @@ paths:
 
     delete:
       tags:
-        - Super Admin - Organisations
+        - 👑 Super Admin - Organisation Management
       summary: Delete Organisation
       description: |
         Delete an organisation from the system.
@@ -1184,7 +1682,7 @@ paths:
   /chitgroups:
     get:
       tags:
-        - Chit Groups
+        - 🏢 Org Admin - Chit Groups
       summary: List Chit Groups
       description: |
         Retrieve chit groups.
@@ -1212,7 +1710,7 @@ paths:
 
     post:
       tags:
-        - Chit Groups
+        - 🏢 Org Admin - Chit Groups
       summary: Create Chit Group
       description: |
         Create a new chit group.
@@ -1241,7 +1739,7 @@ paths:
   /chitgroups/{id}:
     get:
       tags:
-        - Chit Groups
+        - 🏢 Org Admin - Chit Groups
       summary: Get Chit Group by ID
       description: |
         Retrieve a specific chit group. The currentPeriod is automatically updated based on the start date and frequency.
@@ -1267,7 +1765,7 @@ paths:
 
     put:
       tags:
-        - Chit Groups
+        - 🏢 Org Admin - Chit Groups
       summary: Update Chit Group
       description: |
         Update a chit group's information.
@@ -1304,7 +1802,7 @@ paths:
 
     delete:
       tags:
-        - Chit Groups
+        - 🏢 Org Admin - Chit Groups
       summary: Delete Chit Group
       description: |
         Delete a chit group and all related data (collections, winners, group members).
@@ -1338,7 +1836,7 @@ paths:
   /chitgroups/{id}/clone:
     post:
       tags:
-        - Chit Groups
+        - 🏢 Org Admin - Chit Groups
       summary: Clone Chit Group
       description: |
         Create a copy of an existing chit group with reset period and status.
@@ -1379,7 +1877,7 @@ paths:
   /members:
     get:
       tags:
-        - Members
+        - 🏢 Org Admin - Members
       summary: List Members
       description: |
         Retrieve members.
@@ -1401,7 +1899,7 @@ paths:
 
     post:
       tags:
-        - Members
+        - 🏢 Org Admin - Members
       summary: Create Member
       description: |
         Create a new member.
@@ -1430,7 +1928,7 @@ paths:
   /members/{id}:
     get:
       tags:
-        - Members
+        - 🏢 Org Admin - Members
       summary: Get Member by ID
       description: |
         Retrieve a specific member by ID.
@@ -1460,7 +1958,7 @@ paths:
   /groupmembers:
     get:
       tags:
-        - Group Members
+        - 🏢 Org Admin - Group Members (Subscriptions)
       summary: List Group Member Subscriptions
       description: |
         Retrieve member subscriptions to chit groups with dynamically calculated overdue amounts.
@@ -1493,7 +1991,7 @@ paths:
 
     post:
       tags:
-        - Group Members
+        - 🏢 Org Admin - Group Members (Subscriptions)
       summary: Create Group Member Subscription
       description: |
         Enroll a member into a chit group. The totalDue and collectionFactor are automatically calculated.
@@ -1531,7 +2029,7 @@ paths:
   /collections:
     get:
       tags:
-        - Collections
+        - 🏢 Org Admin - Collections
       summary: List Collections
       description: |
         Retrieve payment collections.
@@ -1569,7 +2067,7 @@ paths:
 
     post:
       tags:
-        - Collections
+        - 🏢 Org Admin - Collections
       summary: Record Collection Payment
       description: |
         Record a payment collection for a member's subscription. The collection sequence is automatically determined, and subscription totals are updated.
@@ -1604,7 +2102,7 @@ paths:
   /winners:
     get:
       tags:
-        - Winners
+        - 🏢 Org Admin - Winners (Draws)
       summary: List Winners
       description: |
         Retrieve draw winners.
@@ -1642,7 +2140,7 @@ paths:
 
     post:
       tags:
-        - Winners
+        - 🏢 Org Admin - Winners (Draws)
       summary: Record Winner
       description: |
         Record a winner for a chit group draw.
@@ -1676,7 +2174,7 @@ paths:
   /dashboard:
     get:
       tags:
-        - Dashboard
+        - 🏢 Org Admin - Dashboard
       summary: Get Dashboard Statistics
       description: |
         Retrieve dashboard statistics including active groups count, total collections, active members, pending dues, recent collections, and pending dues list.
@@ -1700,7 +2198,7 @@ paths:
   /reports:
     get:
       tags:
-        - Reports
+        - 🏢 Org Admin - Reports
       summary: Get Analytics Reports
       description: |
         Retrieve comprehensive analytics including collection trends, member distribution, payment mode statistics, recent transactions, and group performance.
@@ -1724,7 +2222,7 @@ paths:
   /seed:
     post:
       tags:
-        - System
+        - 🔧 System Utilities
       summary: Seed Database
       description: |
         Create sample data for testing purposes. This endpoint clears existing data and creates:
@@ -1756,7 +2254,7 @@ paths:
 
     delete:
       tags:
-        - System
+        - 🔧 System Utilities
       summary: Clear Database
       description: |
         Delete all data from the database (except users).

@@ -30,7 +30,7 @@ info:
 servers:
   - url: http://localhost:3000/api
     description: Development server
-  - url: https://your-domain.com/api
+  - url: https://chitwise-new.vercel.app/api
     description: Production server
 
 tags:
