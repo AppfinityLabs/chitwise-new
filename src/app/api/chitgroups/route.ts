@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import ChitGroup from '@/models/ChitGroup';
+import '@/models/Organisation'; // Required for populate
 import { verifyApiAuth } from '@/lib/apiAuth';
 
 export async function GET(request: NextRequest) {
@@ -30,8 +31,9 @@ export async function GET(request: NextRequest) {
             .sort({ createdAt: -1 })
             .populate('organisationId', 'name code');
         return NextResponse.json(groups);
-    } catch (error) {
-        return NextResponse.json({ error: 'Failed to fetch groups' }, { status: 500 });
+    } catch (error: any) {
+        console.error('Error fetching groups:', error);
+        return NextResponse.json({ error: 'Failed to fetch groups', details: error.message }, { status: 500 });
     }
 }
 

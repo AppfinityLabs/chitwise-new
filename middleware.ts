@@ -2,8 +2,55 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyToken, getTokenFromCookies } from '@/lib/auth';
 
+// CORS allowed origins
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    process.env.NEXT_PUBLIC_PWA_URL, // Add PWA URL in .env.local if needed
+].filter(Boolean);
+
+// CORS headers helper
+function getCorsHeaders(origin: string | null) {
+    const headers: Record<string, string> = {
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Max-Age': '86400',
+    };
+
+    // Allow localhost origins (for development) or specified origins
+    if (origin) {
+        const isLocalhost = origin.startsWith('http://localhost:');
+        const isAllowed = allowedOrigins.includes(origin);
+
+        if (isLocalhost || isAllowed) {
+            headers['Access-Control-Allow-Origin'] = origin;
+        }
+    }
+
+    return headers;
+}
+
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+    const origin = request.headers.get('origin');
+
+    // Handle preflight OPTIONS requests for CORS
+    if (request.method === 'OPTIONS') {
+        const headers = new Headers();
+        headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+        headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+        headers.set('Access-Control-Allow-Credentials', 'true');
+        headers.set('Access-Control-Max-Age', '86400');
+
+        // Set Allow-Origin for any localhost or allowed origins
+        if (origin && (origin.startsWith('http://localhost:') || allowedOrigins.includes(origin))) {
+            headers.set('Access-Control-Allow-Origin', origin);
+        }
+
+        return new NextResponse(null, { status: 204, headers });
+    }
 
     // Public routes that don't require authentication
     const publicRoutes = ['/login'];
@@ -23,9 +70,14 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/', request.url));
     }
 
-    // Allow public API routes
+    // Allow public API routes with CORS headers
     if (isPublicApiRoute) {
-        return NextResponse.next();
+        const response = NextResponse.next();
+        const corsHeaders = getCorsHeaders(origin);
+        Object.entries(corsHeaders).forEach(([key, value]) => {
+            response.headers.set(key, value);
+        });
+        return response;
     }
 
     // Allow login page for unauthenticated users
@@ -38,7 +90,7 @@ export async function middleware(request: NextRequest) {
         if (pathname.startsWith('/api/')) {
             return NextResponse.json(
                 { error: 'Unauthorized - Please login' },
-                { status: 401 }
+                { status: 401, headers: getCorsHeaders(origin) }
             );
         }
 
@@ -52,7 +104,7 @@ export async function middleware(request: NextRequest) {
         if (pathname.startsWith('/api/')) {
             return NextResponse.json(
                 { error: 'Unauthorized - Invalid token' },
-                { status: 401 }
+                { status: 401, headers: getCorsHeaders(origin) }
             );
         }
 
@@ -61,8 +113,15 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
     }
 
-    // Token is valid - allow the request
-    return NextResponse.next();
+    // Token is valid - allow the request with CORS headers for API routes
+    const response = NextResponse.next();
+    if (pathname.startsWith('/api/')) {
+        const corsHeaders = getCorsHeaders(origin);
+        Object.entries(corsHeaders).forEach(([key, value]) => {
+            response.headers.set(key, value);
+        });
+    }
+    return response;
 }
 
 export const config = {
