@@ -1,0 +1,1780 @@
+openapi: 3.0.3
+info:
+  title: ChitWise API
+  description: |
+    ChitWise is a comprehensive chit fund management system with role-based access control.
+    
+    ## User Roles
+    
+    ### Super Admin (`SUPER_ADMIN`)
+    - Has complete system-wide access
+    - Can manage all organisations, users, and data across the platform
+    - Can create and manage Organisation Admins
+    - Has access to all chit groups, members, collections, and reports
+    
+    ### Organisation Admin (`ORG_ADMIN`)
+    - Has access scoped to their assigned organisation only
+    - Can manage chit groups, members, and collections within their organisation
+    - Cannot access other organisations' data
+    - Cannot manage users or create new organisations
+    
+    ## Authentication
+    All API endpoints (except login and seed) require authentication via JWT token stored in an HTTP-only cookie named `token`.
+    
+  version: 1.0.0
+  contact:
+    name: ChitWise Support
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://your-domain.com/api
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication endpoints (All Users)
+  - name: Super Admin - Users
+    description: User management endpoints (Super Admin Only)
+  - name: Super Admin - Organisations
+    description: Organisation management endpoints (Super Admin Only)
+  - name: Chit Groups
+    description: Chit group management (Both Roles - Scoped by Organisation for ORG_ADMIN)
+  - name: Members
+    description: Member management (Both Roles - Scoped by Organisation for ORG_ADMIN)
+  - name: Group Members
+    description: Member subscriptions to chit groups (Both Roles - Scoped by Organisation for ORG_ADMIN)
+  - name: Collections
+    description: Payment collection management (Both Roles - Scoped by Organisation for ORG_ADMIN)
+  - name: Winners
+    description: Draw winner management (Both Roles - Scoped by Organisation for ORG_ADMIN)
+  - name: Dashboard
+    description: Dashboard statistics (Both Roles - Scoped by Organisation for ORG_ADMIN)
+  - name: Reports
+    description: Analytics and reports (Both Roles - Scoped by Organisation for ORG_ADMIN)
+  - name: System
+    description: System utility endpoints
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+      description: JWT token stored in HTTP-only cookie
+
+  schemas:
+    # =====================================================
+    # USER SCHEMAS
+    # =====================================================
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        email:
+          type: string
+          format: email
+          example: "admin@example.com"
+        name:
+          type: string
+          example: "John Doe"
+        role:
+          type: string
+          enum: [SUPER_ADMIN, ORG_ADMIN]
+          example: "ORG_ADMIN"
+        organisationId:
+          type: string
+          description: Required for ORG_ADMIN users
+          example: "507f1f77bcf86cd799439012"
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]
+          example: "ACTIVE"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateUserRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        password:
+          type: string
+          minLength: 6
+          example: "securePassword123"
+        role:
+          type: string
+          enum: [SUPER_ADMIN, ORG_ADMIN]
+          default: "ORG_ADMIN"
+        organisationId:
+          type: string
+          description: Required when role is ORG_ADMIN
+          example: "507f1f77bcf86cd799439012"
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        role:
+          type: string
+          enum: [ORG_ADMIN]
+          description: Cannot promote to SUPER_ADMIN
+        organisationId:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]
+
+    # =====================================================
+    # ORGANISATION SCHEMAS
+    # =====================================================
+    Organisation:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439012"
+        name:
+          type: string
+          example: "ABC Chit Funds"
+        code:
+          type: string
+          example: "ABC001"
+        description:
+          type: string
+          example: "Leading chit fund company"
+        address:
+          type: string
+          example: "123 Main Street, Chennai"
+        phone:
+          type: string
+          example: "+91-9876543210"
+        email:
+          type: string
+          format: email
+          example: "info@abcchits.com"
+        gstNumber:
+          type: string
+          example: "33AABCS1429B1Z4"
+        panNumber:
+          type: string
+          example: "AABCS1429B"
+        logo:
+          type: string
+          example: "https://example.com/logo.png"
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateOrganisationRequest:
+      type: object
+      required:
+        - name
+        - code
+      properties:
+        name:
+          type: string
+          example: "ABC Chit Funds"
+        code:
+          type: string
+          example: "ABC001"
+        description:
+          type: string
+        address:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        gstNumber:
+          type: string
+        panNumber:
+          type: string
+        logo:
+          type: string
+
+    UpdateOrganisationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        gstNumber:
+          type: string
+        panNumber:
+          type: string
+        logo:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]
+
+    # =====================================================
+    # CHIT GROUP SCHEMAS
+    # =====================================================
+    ChitGroup:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439013"
+        groupName:
+          type: string
+          example: "52W-2000-2024"
+        description:
+          type: string
+          example: "Weekly chit group for 52 weeks"
+        frequency:
+          type: string
+          enum: [DAILY, WEEKLY, MONTHLY]
+          example: "WEEKLY"
+        contributionAmount:
+          type: number
+          example: 2000
+        totalUnits:
+          type: integer
+          example: 52
+        totalPeriods:
+          type: integer
+          example: 52
+        commissionValue:
+          type: number
+          example: 4000
+        allowCustomCollectionPattern:
+          type: boolean
+          default: false
+        subscriptionAmount:
+          type: number
+        subscriptionFrequency:
+          type: string
+          enum: [DAILY, WEEKLY, MONTHLY]
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        currentPeriod:
+          type: integer
+          default: 1
+        status:
+          type: string
+          enum: [ACTIVE, CLOSED, SUSPENDED]
+        organisationId:
+          type: string
+          example: "507f1f77bcf86cd799439012"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateChitGroupRequest:
+      type: object
+      required:
+        - groupName
+        - frequency
+        - contributionAmount
+        - totalUnits
+        - totalPeriods
+        - commissionValue
+        - startDate
+      properties:
+        groupName:
+          type: string
+          example: "52W-2000-2024"
+        description:
+          type: string
+        frequency:
+          type: string
+          enum: [DAILY, WEEKLY, MONTHLY]
+        contributionAmount:
+          type: number
+        totalUnits:
+          type: integer
+        totalPeriods:
+          type: integer
+        commissionValue:
+          type: number
+        allowCustomCollectionPattern:
+          type: boolean
+        subscriptionAmount:
+          type: number
+        subscriptionFrequency:
+          type: string
+          enum: [DAILY, WEEKLY, MONTHLY]
+        startDate:
+          type: string
+          format: date-time
+        organisationId:
+          type: string
+          description: Required for SUPER_ADMIN, auto-set for ORG_ADMIN
+
+    UpdateChitGroupRequest:
+      type: object
+      properties:
+        groupName:
+          type: string
+        description:
+          type: string
+        frequency:
+          type: string
+          enum: [DAILY, WEEKLY, MONTHLY]
+        contributionAmount:
+          type: number
+        totalUnits:
+          type: integer
+        totalPeriods:
+          type: integer
+        commissionValue:
+          type: number
+        allowCustomCollectionPattern:
+          type: boolean
+        subscriptionAmount:
+          type: number
+        subscriptionFrequency:
+          type: string
+          enum: [DAILY, WEEKLY, MONTHLY]
+        startDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [ACTIVE, CLOSED, SUSPENDED]
+
+    # =====================================================
+    # MEMBER SCHEMAS
+    # =====================================================
+    Member:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439014"
+        name:
+          type: string
+          example: "Ravi Kumar"
+        phone:
+          type: string
+          example: "9876543210"
+        email:
+          type: string
+          format: email
+        address:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]
+        kycVerified:
+          type: boolean
+          default: false
+        organisationId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateMemberRequest:
+      type: object
+      required:
+        - name
+        - phone
+      properties:
+        name:
+          type: string
+          example: "Ravi Kumar"
+        phone:
+          type: string
+          example: "9876543210"
+        email:
+          type: string
+          format: email
+        address:
+          type: string
+        organisationId:
+          type: string
+          description: Required for SUPER_ADMIN, auto-set for ORG_ADMIN
+
+    # =====================================================
+    # GROUP MEMBER (SUBSCRIPTION) SCHEMAS
+    # =====================================================
+    GroupMember:
+      type: object
+      properties:
+        _id:
+          type: string
+        memberId:
+          $ref: '#/components/schemas/Member'
+        groupId:
+          $ref: '#/components/schemas/ChitGroup'
+        units:
+          type: number
+          description: "Number of units subscribed (e.g., 0.5, 1, 2)"
+          example: 1
+        collectionPattern:
+          type: string
+          enum: [DAILY, WEEKLY, MONTHLY]
+        collectionFactor:
+          type: integer
+          description: "Derived based on group frequency and collection pattern"
+        joinDate:
+          type: string
+          format: date-time
+        totalDue:
+          type: number
+          description: "Total amount due for the subscription"
+        totalCollected:
+          type: number
+          description: "Total amount collected so far"
+        pendingAmount:
+          type: number
+          description: "Remaining amount to be collected"
+        overdueAmount:
+          type: number
+          description: "Dynamically calculated overdue amount"
+        status:
+          type: string
+          enum: [ACTIVE, CLOSED, DEFAULTED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateGroupMemberRequest:
+      type: object
+      required:
+        - groupId
+        - memberId
+        - units
+        - collectionPattern
+      properties:
+        groupId:
+          type: string
+        memberId:
+          type: string
+        units:
+          type: number
+          example: 1
+        collectionPattern:
+          type: string
+          enum: [DAILY, WEEKLY, MONTHLY]
+        joinDate:
+          type: string
+          format: date-time
+
+    # =====================================================
+    # COLLECTION SCHEMAS
+    # =====================================================
+    Collection:
+      type: object
+      properties:
+        _id:
+          type: string
+        groupMemberId:
+          type: string
+        groupId:
+          type: string
+        memberId:
+          type: string
+        basePeriodNumber:
+          type: integer
+          description: "The chit period number"
+        collectionSequence:
+          type: integer
+          description: "Collection sequence within a period"
+        periodDate:
+          type: string
+          format: date-time
+        amountDue:
+          type: number
+        amountPaid:
+          type: number
+        paymentMode:
+          type: string
+          enum: [CASH, UPI, CHEQUE, BANK_TRANSFER]
+        collectedBy:
+          type: string
+        collectedAt:
+          type: string
+          format: date-time
+        remarks:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, PAID, PARTIAL, FAILED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateCollectionRequest:
+      type: object
+      required:
+        - groupMemberId
+        - basePeriodNumber
+        - amountPaid
+      properties:
+        groupMemberId:
+          type: string
+        basePeriodNumber:
+          type: integer
+        amountPaid:
+          type: number
+        paymentMode:
+          type: string
+          enum: [CASH, UPI, CHEQUE, BANK_TRANSFER]
+          default: CASH
+        periodDate:
+          type: string
+          format: date-time
+        remarks:
+          type: string
+
+    # =====================================================
+    # WINNER SCHEMAS
+    # =====================================================
+    Winner:
+      type: object
+      properties:
+        _id:
+          type: string
+        groupId:
+          type: string
+        groupMemberId:
+          type: string
+        memberId:
+          type: string
+        basePeriodNumber:
+          type: integer
+        winningUnits:
+          type: number
+        prizeAmount:
+          type: number
+        selectionMethod:
+          type: string
+          enum: [LOTTERY, AUCTION]
+        commissionEarned:
+          type: number
+        payoutDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [PENDING, PAID, FORFEITED]
+        remarks:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateWinnerRequest:
+      type: object
+      required:
+        - groupId
+        - groupMemberId
+        - memberId
+        - basePeriodNumber
+        - winningUnits
+        - prizeAmount
+      properties:
+        groupId:
+          type: string
+        groupMemberId:
+          type: string
+        memberId:
+          type: string
+        basePeriodNumber:
+          type: integer
+        winningUnits:
+          type: number
+        prizeAmount:
+          type: number
+        commissionEarned:
+          type: number
+        selectionMethod:
+          type: string
+          enum: [LOTTERY, AUCTION]
+          default: LOTTERY
+        status:
+          type: string
+          enum: [PENDING, PAID, FORFEITED]
+          default: PENDING
+        payoutDate:
+          type: string
+          format: date-time
+        remarks:
+          type: string
+
+    # =====================================================
+    # DASHBOARD & REPORTS SCHEMAS
+    # =====================================================
+    DashboardResponse:
+      type: object
+      properties:
+        stats:
+          type: object
+          properties:
+            activeGroups:
+              type: integer
+            totalCollections:
+              type: number
+            activeMembers:
+              type: integer
+            pendingDues:
+              type: number
+        recentCollections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Collection'
+        pendingDuesList:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupMember'
+
+    ReportsResponse:
+      type: object
+      properties:
+        trends:
+          type: array
+          description: "Collection trends for last 6 months"
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                example: "Jan"
+              amount:
+                type: number
+        distribution:
+          type: array
+          description: "Member distribution across groups"
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: integer
+        paymentModeStats:
+          type: array
+          description: "Collections by payment mode"
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: number
+        recentTransactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Collection'
+        groupPerformance:
+          type: array
+          description: "Top 5 groups by collection amount"
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: number
+
+    # =====================================================
+    # ERROR SCHEMAS
+    # =====================================================
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Error message"
+        details:
+          type: string
+
+security:
+  - cookieAuth: []
+
+paths:
+  # =====================================================
+  # AUTHENTICATION ENDPOINTS (ALL USERS)
+  # =====================================================
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User Login
+      description: |
+        Authenticate a user and receive a JWT token stored in an HTTP-only cookie.
+        
+        **Access:** Public (No authentication required)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@gmail.com"
+                password:
+                  type: string
+                  example: "Admin@123"
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: JWT token in HTTP-only cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Login successful"
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      email:
+                        type: string
+                      name:
+                        type: string
+                      role:
+                        type: string
+                      status:
+                        type: string
+        '400':
+          description: Missing credentials
+        '401':
+          description: Invalid email or password
+        '403':
+          description: Account deactivated
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User Logout
+      description: |
+        Logout the current user by clearing the authentication cookie.
+        
+        **Access:** All authenticated users
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logout successful"
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get Current User
+      description: |
+        Retrieve the currently authenticated user's profile.
+        
+        **Access:** All authenticated users
+      responses:
+        '200':
+          description: User data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  email:
+                    type: string
+                  name:
+                    type: string
+                  role:
+                    type: string
+                  status:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+        '401':
+          description: Unauthorized
+        '403':
+          description: Account inactive
+        '404':
+          description: User not found
+
+  # =====================================================
+  # SUPER ADMIN - USER MANAGEMENT
+  # =====================================================
+  /users:
+    get:
+      tags:
+        - Super Admin - Users
+      summary: List All Users
+      description: |
+        Retrieve all users in the system.
+        
+        **Access:** Super Admin Only
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - Super Admin access required
+
+    post:
+      tags:
+        - Super Admin - Users
+      summary: Create New User
+      description: |
+        Create a new user account. When creating an ORG_ADMIN, an organisationId must be provided.
+        
+        **Access:** Super Admin Only
+        
+        **Note:** Cannot create another Super Admin user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Missing required fields or duplicate email
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - Super Admin access required
+
+  /users/{id}:
+    get:
+      tags:
+        - Super Admin - Users
+      summary: Get User by ID
+      description: |
+        Retrieve a specific user by their ID.
+        
+        **Access:** Super Admin Only
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: User not found
+
+    put:
+      tags:
+        - Super Admin - Users
+      summary: Update User
+      description: |
+        Update an existing user's information.
+        
+        **Access:** Super Admin Only
+        
+        **Restrictions:**
+        - Cannot modify a Super Admin user
+        - Cannot promote a user to Super Admin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - Cannot modify Super Admin
+        '404':
+          description: User not found
+
+    delete:
+      tags:
+        - Super Admin - Users
+      summary: Delete User
+      description: |
+        Delete a user from the system.
+        
+        **Access:** Super Admin Only
+        
+        **Restriction:** Cannot delete a Super Admin user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User deleted successfully"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - Cannot delete Super Admin
+        '404':
+          description: User not found
+
+  # =====================================================
+  # SUPER ADMIN - ORGANISATION MANAGEMENT
+  # =====================================================
+  /organisations:
+    get:
+      tags:
+        - Super Admin - Organisations
+      summary: List All Organisations
+      description: |
+        Retrieve all organisations in the system.
+        
+        **Access:** Super Admin Only
+      responses:
+        '200':
+          description: List of organisations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Organisation'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - Super Admin access required
+
+    post:
+      tags:
+        - Super Admin - Organisations
+      summary: Create New Organisation
+      description: |
+        Create a new organisation.
+        
+        **Access:** Super Admin Only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganisationRequest'
+      responses:
+        '201':
+          description: Organisation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organisation'
+        '400':
+          description: Creation failed
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /organisations/{id}:
+    get:
+      tags:
+        - Super Admin - Organisations
+      summary: Get Organisation by ID
+      description: |
+        Retrieve a specific organisation by ID.
+        
+        **Access:** All authenticated users (Super Admin sees all, ORG_ADMIN can view their own)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Organisation data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organisation'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Organisation not found
+
+    put:
+      tags:
+        - Super Admin - Organisations
+      summary: Update Organisation
+      description: |
+        Update an organisation's information.
+        
+        **Access:** All authenticated users (typically used by Super Admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganisationRequest'
+      responses:
+        '200':
+          description: Organisation updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  organisation:
+                    $ref: '#/components/schemas/Organisation'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Organisation not found
+
+    delete:
+      tags:
+        - Super Admin - Organisations
+      summary: Delete Organisation
+      description: |
+        Delete an organisation from the system.
+        
+        **Access:** All authenticated users (typically restricted to Super Admin in practice)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Organisation deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  deletedOrganisationId:
+                    type: string
+        '401':
+          description: Unauthorized
+        '404':
+          description: Organisation not found
+
+  # =====================================================
+  # CHIT GROUPS (BOTH ROLES - SCOPED)
+  # =====================================================
+  /chitgroups:
+    get:
+      tags:
+        - Chit Groups
+      summary: List Chit Groups
+      description: |
+        Retrieve chit groups.
+        
+        **Access:**
+        - **Super Admin:** Can view all groups, optionally filtered by organisationId
+        - **Org Admin:** Automatically filtered to their organisation's groups only
+      parameters:
+        - name: organisationId
+          in: query
+          description: Filter by organisation (Super Admin only)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of chit groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChitGroup'
+        '401':
+          description: Unauthorized
+
+    post:
+      tags:
+        - Chit Groups
+      summary: Create Chit Group
+      description: |
+        Create a new chit group.
+        
+        **Access:**
+        - **Super Admin:** Must provide organisationId
+        - **Org Admin:** Organisation is automatically set from user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChitGroupRequest'
+      responses:
+        '201':
+          description: Chit group created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChitGroup'
+        '400':
+          description: Invalid request or missing organisation
+        '401':
+          description: Unauthorized
+
+  /chitgroups/{id}:
+    get:
+      tags:
+        - Chit Groups
+      summary: Get Chit Group by ID
+      description: |
+        Retrieve a specific chit group. The currentPeriod is automatically updated based on the start date and frequency.
+        
+        **Access:** All authenticated users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Chit group data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChitGroup'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Group not found
+
+    put:
+      tags:
+        - Chit Groups
+      summary: Update Chit Group
+      description: |
+        Update a chit group's information.
+        
+        **Access:** All authenticated users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateChitGroupRequest'
+      responses:
+        '200':
+          description: Group updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  group:
+                    $ref: '#/components/schemas/ChitGroup'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Group not found
+
+    delete:
+      tags:
+        - Chit Groups
+      summary: Delete Chit Group
+      description: |
+        Delete a chit group and all related data (collections, winners, group members).
+        
+        **Access:** All authenticated users
+        
+        **Warning:** This is a cascading delete operation.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Group and related data deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  deletedGroupId:
+                    type: string
+        '401':
+          description: Unauthorized
+        '404':
+          description: Group not found
+
+  /chitgroups/{id}/clone:
+    post:
+      tags:
+        - Chit Groups
+      summary: Clone Chit Group
+      description: |
+        Create a copy of an existing chit group with reset period and status.
+        
+        **Access:** All authenticated users
+        
+        The cloned group will have:
+        - Name suffixed with "(Copy)"
+        - Start date set to current date
+        - Current period reset to 1
+        - Status set to ACTIVE
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Group cloned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  clonedGroup:
+                    $ref: '#/components/schemas/ChitGroup'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Original group not found
+
+  # =====================================================
+  # MEMBERS (BOTH ROLES - SCOPED)
+  # =====================================================
+  /members:
+    get:
+      tags:
+        - Members
+      summary: List Members
+      description: |
+        Retrieve members.
+        
+        **Access:**
+        - **Super Admin:** Can view all members
+        - **Org Admin:** Automatically filtered to their organisation's members only
+      responses:
+        '200':
+          description: List of members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Member'
+        '401':
+          description: Unauthorized
+
+    post:
+      tags:
+        - Members
+      summary: Create Member
+      description: |
+        Create a new member.
+        
+        **Access:**
+        - **Super Admin:** Must provide organisationId
+        - **Org Admin:** Organisation is automatically set from user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMemberRequest'
+      responses:
+        '201':
+          description: Member created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '400':
+          description: Invalid request or missing organisation
+        '401':
+          description: Unauthorized
+
+  /members/{id}:
+    get:
+      tags:
+        - Members
+      summary: Get Member by ID
+      description: |
+        Retrieve a specific member by ID.
+        
+        **Access:** All authenticated users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Member data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Member not found
+
+  # =====================================================
+  # GROUP MEMBERS / SUBSCRIPTIONS (BOTH ROLES - SCOPED)
+  # =====================================================
+  /groupmembers:
+    get:
+      tags:
+        - Group Members
+      summary: List Group Member Subscriptions
+      description: |
+        Retrieve member subscriptions to chit groups with dynamically calculated overdue amounts.
+        
+        **Access:**
+        - **Super Admin:** Can view all subscriptions
+        - **Org Admin:** Automatically filtered to their organisation's groups
+      parameters:
+        - name: groupId
+          in: query
+          description: Filter by group ID
+          schema:
+            type: string
+        - name: memberId
+          in: query
+          description: Filter by member ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of subscriptions with overdue information
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupMember'
+        '401':
+          description: Unauthorized
+
+    post:
+      tags:
+        - Group Members
+      summary: Create Group Member Subscription
+      description: |
+        Enroll a member into a chit group. The totalDue and collectionFactor are automatically calculated.
+        
+        **Collection Factor Calculation:**
+        - Monthly group + Daily pattern = 30
+        - Monthly group + Weekly pattern = 4
+        - Weekly group + Daily pattern = 7
+        - Same or less granular pattern = 1
+        
+        **Access:** All authenticated users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupMemberRequest'
+      responses:
+        '201':
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupMember'
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Group not found
+
+  # =====================================================
+  # COLLECTIONS (BOTH ROLES - SCOPED)
+  # =====================================================
+  /collections:
+    get:
+      tags:
+        - Collections
+      summary: List Collections
+      description: |
+        Retrieve payment collections.
+        
+        **Access:**
+        - **Super Admin:** Can view all collections
+        - **Org Admin:** Automatically filtered to their organisation's groups
+      parameters:
+        - name: groupMemberId
+          in: query
+          description: Filter by group member subscription ID
+          schema:
+            type: string
+        - name: groupId
+          in: query
+          description: Filter by group ID
+          schema:
+            type: string
+        - name: memberId
+          in: query
+          description: Filter by member ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of collections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Collection'
+        '401':
+          description: Unauthorized
+
+    post:
+      tags:
+        - Collections
+      summary: Record Collection Payment
+      description: |
+        Record a payment collection for a member's subscription. The collection sequence is automatically determined, and subscription totals are updated.
+        
+        **Access:** All authenticated users
+        
+        **Automatic Updates:**
+        - Collection sequence calculated based on existing collections for the period
+        - Subscription's totalCollected and pendingAmount updated
+        - Subscription status set to CLOSED if fully paid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCollectionRequest'
+      responses:
+        '201':
+          description: Collection recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '400':
+          description: Invalid request or all collections for period already recorded
+        '401':
+          description: Unauthorized
+
+  # =====================================================
+  # WINNERS (BOTH ROLES - SCOPED)
+  # =====================================================
+  /winners:
+    get:
+      tags:
+        - Winners
+      summary: List Winners
+      description: |
+        Retrieve draw winners.
+        
+        **Access:**
+        - **Super Admin:** Can view all winners
+        - **Org Admin:** Automatically filtered to their organisation's groups
+      parameters:
+        - name: groupId
+          in: query
+          description: Filter by group ID
+          schema:
+            type: string
+        - name: groupMemberId
+          in: query
+          description: Filter by group member subscription ID
+          schema:
+            type: string
+        - name: memberId
+          in: query
+          description: Filter by member ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of winners
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Winner'
+        '401':
+          description: Unauthorized
+
+    post:
+      tags:
+        - Winners
+      summary: Record Winner
+      description: |
+        Record a winner for a chit group draw.
+        
+        **Access:**
+        - **Super Admin:** Can create winners for any group
+        - **Org Admin:** Can only create winners for groups in their organisation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWinnerRequest'
+      responses:
+        '201':
+          description: Winner recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Winner'
+        '400':
+          description: Missing required fields or invalid subscription
+        '401':
+          description: Unauthorized
+        '403':
+          description: Group does not belong to user's organisation
+
+  # =====================================================
+  # DASHBOARD (BOTH ROLES - SCOPED)
+  # =====================================================
+  /dashboard:
+    get:
+      tags:
+        - Dashboard
+      summary: Get Dashboard Statistics
+      description: |
+        Retrieve dashboard statistics including active groups count, total collections, active members, pending dues, recent collections, and pending dues list.
+        
+        **Access:**
+        - **Super Admin:** Statistics for all organisations
+        - **Org Admin:** Statistics scoped to their organisation only
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+        '401':
+          description: Unauthorized
+
+  # =====================================================
+  # REPORTS (BOTH ROLES - SCOPED)
+  # =====================================================
+  /reports:
+    get:
+      tags:
+        - Reports
+      summary: Get Analytics Reports
+      description: |
+        Retrieve comprehensive analytics including collection trends, member distribution, payment mode statistics, recent transactions, and group performance.
+        
+        **Access:**
+        - **Super Admin:** Analytics for all organisations
+        - **Org Admin:** Analytics scoped to their organisation only
+      responses:
+        '200':
+          description: Reports data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportsResponse'
+        '401':
+          description: Unauthorized
+
+  # =====================================================
+  # SYSTEM ENDPOINTS
+  # =====================================================
+  /seed:
+    post:
+      tags:
+        - System
+      summary: Seed Database
+      description: |
+        Create sample data for testing purposes. This endpoint clears existing data and creates:
+        - Super Admin user (admin@gmail.com / Admin@123)
+        - Sample chit groups
+        - Sample members
+        - Sample subscriptions
+        
+        **Access:** Public (No authentication required)
+        
+        **Warning:** This will DELETE all existing data!
+      security: []
+      responses:
+        '200':
+          description: Seed data created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  groups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChitGroup'
+        '500':
+          description: Seed failed
+
+    delete:
+      tags:
+        - System
+      summary: Clear Database
+      description: |
+        Delete all data from the database (except users).
+        
+        **Access:** Public (No authentication required)
+        
+        **Warning:** This will DELETE all data!
+      security: []
+      responses:
+        '200':
+          description: Database cleared successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Database cleared successfully"
+        '500':
+          description: Clear operation failed
