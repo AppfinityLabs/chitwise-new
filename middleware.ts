@@ -7,6 +7,7 @@ const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3002',
+    'https://chitwise-pwa.vercel.app',
     process.env.NEXT_PUBLIC_PWA_URL, // Add PWA URL in .env.local if needed
 ].filter(Boolean);
 
