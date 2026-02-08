@@ -255,6 +255,54 @@ components:
     # =====================================================
     ChitGroup:
       type: object
+      description: |
+        A Chit Group represents a savings scheme where members contribute a fixed amount periodically.
+        
+        ## 📚 Case Scenarios & Examples
+        
+        ### 1. Monthly Chit (Standard)
+        **Best for:** Salaried employees, long-term savings.
+        - **Frequency:** MONTHLY
+        - **Periods:** 20 Months
+        - **Contribution:** ₹5,000 / month
+        - **Total Value:** ₹1,00,000 (20 * 5000)
+        - **Logic:** Members pay once a month. One lucky draw/auction per month.
+        
+        ### 2. High-Value Monthly Chit
+        **Best for:** Business owners, large capital requirements.
+        - **Frequency:** MONTHLY
+        - **Periods:** 50 Months
+        - **Contribution:** ₹1,00,000 / month
+        - **Total Value:** ₹50,00,000 (50 Lakhs)
+        - **Logic:** High stakes, often involving auctions where members bid for the prize money.
+        
+        ### 3. Weekly Chit (Fast Track)
+        **Best for:** Small traders, weekly income earners.
+        - **Frequency:** WEEKLY
+        - **Periods:** 50 Weeks (approx 1 year)
+        - **Contribution:** ₹1,000 / week
+        - **Total Value:** ₹50,000
+        - **Logic:** Fast rotation. Collections happen every week.
+        
+        ### 4. Daily Collection Chit
+        **Best for:** Daily wage earners, shopkeepers.
+        - **Frequency:** WEEKLY or MONTHLY (Group Frequency)
+        - **Collection Pattern:** DAILY
+        - **Logic:**
+          - The Group is technically WEEKLY or MONTHLY.
+          - But members pay DAILY small amounts.
+          - Example: ₹100 daily for 30 days = ₹3,000 monthly contribution.
+          - App tracks daily payments and aggregates them for the period.
+        
+        ### 5. Auction vs Lottery
+        - **Lottery (Lucky Draw):** Winner picked randomly. Gets full prize money - fixed commission.
+        - **Auction:** Members bid to forego part of the prize.
+          - Example Prize: ₹1,00,000
+          - Member A bids: "I'll take ₹95,000" (₹5k discount)
+          - Member B bids: "I'll take ₹90,000" (₹10k discount)
+          - **Winner:** Member B (Lowest bidder/Highest discount).
+          - **Benefit:** The discount (₹10k) becomes extra dividend for other members or extra commission for organizer.
+        
       properties:
         _id:
           type: string
@@ -445,6 +493,34 @@ components:
     # =====================================================
     GroupMember:
       type: object
+      description: |
+        A GroupMember represents a member's subscription to a specific chit group.
+        
+        ## 📚 Subscription Scenarios
+        
+        ### 1. Standard Subscription
+        - **Units:** 1
+        - **Group Pattern:** MONTHLY
+        - **Collection:** MONTHLY
+        - **Logic:** Member pays full `contributionAmount` once every month.
+        
+        ### 2. Fractional Units (Half/Quarter Share)
+        - **Units:** 0.5 (Half Ticket)
+        - **Group Pattern:** MONTHLY
+        - **Logic:**
+          - Member pays 50% of the contribution amount.
+          - If they win, they get 50% of the Prize Money.
+          - Example: ₹2000 group. Member pays ₹1000. Wins ₹50,000 instead of ₹1 Lakh.
+        
+        ### 3. High Frequency Collection
+        - **Group Pattern:** MONTHLY (52 Weeks / 12 Months)
+        - **Collection Pattern:** DAILY or WEEKLY
+        - **Logic:**
+          - Member finds it hard to pay ₹2000 at once.
+          - They opt for **DAILY** collection.
+          - System breaks down ₹2000 into smaller daily inputs (e.g., ₹70/day).
+          - Agents collect ₹70 daily. System tracks "Pending" until total ₹2000 is reached for the month.
+        
       properties:
         _id:
           type: string
@@ -514,6 +590,30 @@ components:
     # =====================================================
     Collection:
       type: object
+      description: |
+        A Collection record represents a payment transaction.
+        
+        ## 📚 Collection Scenarios
+        
+        ### 1. Full Payment
+        - **Due:** ₹2000
+        - **Paid:** ₹2000
+        - **Status:** PAID
+        - **Logic:** Standard scenario where member pays full amount on time.
+        
+        ### 2. Partial Payment (Daily Collection Style)
+        - **Due:** ₹2000 (Weekly)
+        - **Paid:** ₹300 (Daily)
+        - **Status:** PARTIAL
+        - **Logic:**
+          - Member pays small amounts daily.
+          - System records multiple collections for the same period.
+          - Status remains PARTIAL until total reaches ₹2000.
+        
+        ### 3. Advance Payment
+        - **Logic:** Member pays for future periods.
+        - **Handling:** System records it as a collection for the *next* open period sequence.
+        
       properties:
         _id:
           type: string
@@ -584,6 +684,32 @@ components:
     # =====================================================
     Winner:
       type: object
+      description: |
+        A Winner record represents the outcome of a draw.
+        
+        ## 📚 Winning Scenarios
+        
+        ### 1. Standard Lottery Win
+        - **Selection:** Random Draw.
+        - **Prize:** Full Prize Money - Commission.
+        - **Example:** Prize Pool ₹1L - Comm ₹5k = Winner gets ₹95,000.
+        
+        ### 2. Auction Win (Bidding)
+        - **Selection:** Lowest Bidder.
+        - **Example:**
+          - Prize Pool: ₹1,00,000
+          - Member Bids: "I want only ₹90,000" (Discount ₹10,000)
+          - Winner gets: ₹90,000
+          - **Dividend:** The ₹10,000 discount is distributed among other members or taken as profit.
+        
+        ### 3. Partial Unit Win
+        - **Scenario:** Member has 2 Units in the group.
+        - **Win:** Wins only 1 Unit in this draw.
+        - **Logic:**
+          - They get full prize for 1 unit.
+          - They continue paying for the 2nd unit in future periods.
+          - They are still eligible to win again for the 2nd unit.
+        
       properties:
         _id:
           type: string
