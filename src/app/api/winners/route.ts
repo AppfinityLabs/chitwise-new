@@ -4,11 +4,18 @@ import Winner from '@/models/Winner';
 import ChitGroup from '@/models/ChitGroup';
 import GroupMember from '@/models/GroupMember'; // To verify subscription
 import { verifyApiAuth } from '@/lib/apiAuth';
+import { handleCorsOptions, withCors } from '@/lib/cors';
+
+// Handle OPTIONS preflight for CORS
+export async function OPTIONS(request: NextRequest) {
+    return handleCorsOptions(request);
+}
 
 export async function GET(request: NextRequest) {
+    const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
     await dbConnect();
@@ -46,16 +53,17 @@ export async function GET(request: NextRequest) {
                 populate: { path: 'organisationId', select: 'name code' }
             })
             .sort({ createdAt: -1 });
-        return NextResponse.json(winners);
+        return withCors(NextResponse.json(winners), origin);
     } catch (error) {
-        return NextResponse.json({ error: 'Failed to fetch winners' }, { status: 500 });
+        return withCors(NextResponse.json({ error: 'Failed to fetch winners' }, { status: 500 }), origin);
     }
 }
 
 export async function POST(request: NextRequest) {
+    const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
     await dbConnect();
@@ -78,21 +86,21 @@ export async function POST(request: NextRequest) {
 
         // Basic validations
         if (!groupId || !groupMemberId || !memberId || !basePeriodNumber || !winningUnits || !prizeAmount) {
-            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+            return withCors(NextResponse.json({ error: 'Missing required fields' }, { status: 400 }), origin);
         }
 
         // Validate Organisation Scope
         if (user.role === 'ORG_ADMIN' && user.organisationId) {
             const group = await ChitGroup.findById(groupId);
             if (!group || group.organisationId.toString() !== user.organisationId.toString()) {
-                return NextResponse.json({ error: 'Group does not belong to your organisation' }, { status: 403 });
+                return withCors(NextResponse.json({ error: 'Group does not belong to your organisation' }, { status: 403 }), origin);
             }
         }
 
         // Verify that the GroupMember exists and belongs to the group
         const subscription = await GroupMember.findOne({ _id: groupMemberId, groupId, memberId });
         if (!subscription) {
-            return NextResponse.json({ error: 'Invalid GroupMember subscription' }, { status: 400 });
+            return withCors(NextResponse.json({ error: 'Invalid GroupMember subscription' }, { status: 400 }), origin);
         }
 
         // Create Winner
@@ -110,10 +118,10 @@ export async function POST(request: NextRequest) {
             remarks
         });
 
-        return NextResponse.json(newWinner, { status: 201 });
+        return withCors(NextResponse.json(newWinner, { status: 201 }), origin);
 
     } catch (error: any) {
         console.error('Error creating winner:', error);
-        return NextResponse.json({ error: error.message || 'Failed to create winner' }, { status: 500 });
+        return withCors(NextResponse.json({ error: error.message || 'Failed to create winner' }, { status: 500 }), origin);
     }
 }

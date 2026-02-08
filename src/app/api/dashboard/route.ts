@@ -5,11 +5,18 @@ import Member from '@/models/Member';
 import GroupMember from '@/models/GroupMember';
 import Collection from '@/models/Collection';
 import { verifyApiAuth } from '@/lib/apiAuth';
+import { handleCorsOptions, withCors } from '@/lib/cors';
+
+// Handle OPTIONS preflight for CORS
+export async function OPTIONS(request: NextRequest) {
+    return handleCorsOptions(request);
+}
 
 export async function GET(request: NextRequest) {
+    const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
     await dbConnect();
@@ -67,7 +74,7 @@ export async function GET(request: NextRequest) {
             .limit(5)
             .populate('memberId', 'name');
 
-        return NextResponse.json({
+        return withCors(NextResponse.json({
             stats: {
                 activeGroups: activeGroupsCount,
                 totalCollections,
@@ -76,10 +83,10 @@ export async function GET(request: NextRequest) {
             },
             recentCollections,
             pendingDuesList
-        });
+        }), origin);
 
     } catch (error) {
         console.error("Dashboard API Error:", error);
-        return NextResponse.json({ error: 'Failed to fetch dashboard data' }, { status: 500 });
+        return withCors(NextResponse.json({ error: 'Failed to fetch dashboard data' }, { status: 500 }), origin);
     }
 }

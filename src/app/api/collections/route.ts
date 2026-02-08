@@ -4,11 +4,19 @@ import Collection from '@/models/Collection';
 import GroupMember from '@/models/GroupMember';
 import ChitGroup from '@/models/ChitGroup';
 import { verifyApiAuth } from '@/lib/apiAuth';
+import { handleCorsOptions, withCors } from '@/lib/cors';
+import mongoose from 'mongoose';
+
+// Handle OPTIONS preflight for CORS
+export async function OPTIONS(request: NextRequest) {
+    return handleCorsOptions(request);
+}
 
 export async function GET(request: NextRequest) {
+    const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
     await dbConnect();
@@ -48,18 +56,17 @@ export async function GET(request: NextRequest) {
                 populate: { path: 'organisationId', select: 'name code' }
             })
             .populate('groupMemberId');
-        return NextResponse.json(collections);
+        return withCors(NextResponse.json(collections), origin);
     } catch (error) {
-        return NextResponse.json({ error: 'Failed to fetch collections' }, { status: 500 });
+        return withCors(NextResponse.json({ error: 'Failed to fetch collections' }, { status: 500 }), origin);
     }
 }
 
-import mongoose from 'mongoose';
-
 export async function POST(request: NextRequest) {
+    const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
     await dbConnect();
@@ -122,11 +129,11 @@ export async function POST(request: NextRequest) {
         await session.commitTransaction();
         session.endSession();
 
-        return NextResponse.json(newCollection[0], { status: 201 });
+        return withCors(NextResponse.json(newCollection[0], { status: 201 }), origin);
 
     } catch (error: any) {
         await session.abortTransaction();
         session.endSession();
-        return NextResponse.json({ error: error.message || 'Failed to record collection' }, { status: 400 });
+        return withCors(NextResponse.json({ error: error.message || 'Failed to record collection' }, { status: 400 }), origin);
     }
 }

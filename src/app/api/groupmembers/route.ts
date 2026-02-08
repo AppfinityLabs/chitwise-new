@@ -4,11 +4,18 @@ import GroupMember from '@/models/GroupMember';
 import ChitGroup from '@/models/ChitGroup';
 import Member from '@/models/Member'; // Ensure model is registered
 import { verifyApiAuth } from '@/lib/apiAuth';
+import { handleCorsOptions, withCors } from '@/lib/cors';
+
+// Handle OPTIONS preflight for CORS
+export async function OPTIONS(request: NextRequest) {
+    return handleCorsOptions(request);
+}
 
 export async function GET(request: NextRequest) {
+    const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
     await dbConnect();
@@ -45,7 +52,6 @@ export async function GET(request: NextRequest) {
         const subscriptionsWithDue = subscriptions.map(sub => {
             const group = sub.groupId;
             // Expected: Current Period * Contribution * Units
-            // Note: If currentPeriod is 1, and we are in period 1, we expect 1 payment? Yes.
             const expectedAmount = group.currentPeriod * group.contributionAmount * sub.units;
             const overdueAmount = Math.max(0, expectedAmount - sub.totalCollected);
 
@@ -55,16 +61,17 @@ export async function GET(request: NextRequest) {
             };
         });
 
-        return NextResponse.json(subscriptionsWithDue);
+        return withCors(NextResponse.json(subscriptionsWithDue), origin);
     } catch (error) {
-        return NextResponse.json({ error: 'Failed to fetch subscriptions' }, { status: 500 });
+        return withCors(NextResponse.json({ error: 'Failed to fetch subscriptions' }, { status: 500 }), origin);
     }
 }
 
 export async function POST(request: NextRequest) {
+    const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
     await dbConnect();
@@ -75,7 +82,7 @@ export async function POST(request: NextRequest) {
         // 1. Fetch Group Details
         const group = await ChitGroup.findById(groupId);
         if (!group) {
-            return NextResponse.json({ error: 'Group not found' }, { status: 404 });
+            return withCors(NextResponse.json({ error: 'Group not found' }, { status: 404 }), origin);
         }
 
         // 2. Calculate Total Due
@@ -111,10 +118,10 @@ export async function POST(request: NextRequest) {
             status: 'ACTIVE'
         });
 
-        return NextResponse.json(subscription, { status: 201 });
+        return withCors(NextResponse.json(subscription, { status: 201 }), origin);
 
     } catch (error) {
         console.error(error);
-        return NextResponse.json({ error: 'Failed to create subscription', details: error }, { status: 400 });
+        return withCors(NextResponse.json({ error: 'Failed to create subscription', details: error }, { status: 400 }), origin);
     }
 }

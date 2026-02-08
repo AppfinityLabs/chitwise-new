@@ -3,11 +3,18 @@ import dbConnect from '@/lib/db';
 import ChitGroup from '@/models/ChitGroup';
 import '@/models/Organisation'; // Required for populate
 import { verifyApiAuth } from '@/lib/apiAuth';
+import { handleCorsOptions, withCors } from '@/lib/cors';
+
+// Handle OPTIONS preflight for CORS
+export async function OPTIONS(request: NextRequest) {
+    return handleCorsOptions(request);
+}
 
 export async function GET(request: NextRequest) {
+    const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
     await dbConnect();
@@ -30,17 +37,18 @@ export async function GET(request: NextRequest) {
         const groups = await ChitGroup.find(query)
             .sort({ createdAt: -1 })
             .populate('organisationId', 'name code');
-        return NextResponse.json(groups);
+        return withCors(NextResponse.json(groups), origin);
     } catch (error: any) {
         console.error('Error fetching groups:', error);
-        return NextResponse.json({ error: 'Failed to fetch groups', details: error.message }, { status: 500 });
+        return withCors(NextResponse.json({ error: 'Failed to fetch groups', details: error.message }, { status: 500 }), origin);
     }
 }
 
 export async function POST(request: NextRequest) {
+    const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
     await dbConnect();
@@ -50,18 +58,18 @@ export async function POST(request: NextRequest) {
         // Scope to Organisation
         if (user.role === 'ORG_ADMIN') {
             if (!user.organisationId) {
-                return NextResponse.json({ error: 'User not linked to an organisation' }, { status: 400 });
+                return withCors(NextResponse.json({ error: 'User not linked to an organisation' }, { status: 400 }), origin);
             }
             body.organisationId = user.organisationId;
         } else if (user.role === 'SUPER_ADMIN') {
             if (!body.organisationId) {
-                return NextResponse.json({ error: 'Organisation ID is required for Super Admin' }, { status: 400 });
+                return withCors(NextResponse.json({ error: 'Organisation ID is required for Super Admin' }, { status: 400 }), origin);
             }
         }
 
         const group = await ChitGroup.create(body);
-        return NextResponse.json(group, { status: 201 });
+        return withCors(NextResponse.json(group, { status: 201 }), origin);
     } catch (error: any) {
-        return NextResponse.json({ error: 'Failed to create group', details: error.message }, { status: 400 });
+        return withCors(NextResponse.json({ error: 'Failed to create group', details: error.message }, { status: 400 }), origin);
     }
 }

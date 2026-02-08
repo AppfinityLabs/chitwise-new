@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import ChitGroup from '@/models/ChitGroup';
 import Member from '@/models/Member';
@@ -7,9 +7,16 @@ import Collection from '@/models/Collection';
 import Winner from '@/models/Winner';
 import User from '@/models/User';
 import { hashPassword } from '@/lib/auth';
+import { handleCorsOptions, withCors } from '@/lib/cors';
 import mongoose from 'mongoose';
 
-export async function POST() {
+// Handle OPTIONS preflight for CORS
+export async function OPTIONS(request: NextRequest) {
+    return handleCorsOptions(request);
+}
+
+export async function POST(request: NextRequest) {
+    const origin = request.headers.get('origin');
     await dbConnect();
 
     try {
@@ -140,14 +147,15 @@ export async function POST() {
             joinDate: new Date("2026-01-10")
         });
 
-        return NextResponse.json({ message: "Seed data created successfully", groups: [group1, group2, group3] });
+        return withCors(NextResponse.json({ message: "Seed data created successfully", groups: [group1, group2, group3] }), origin);
     } catch (error) {
         console.error(error);
-        return NextResponse.json({ error: "Seed failed", details: error }, { status: 500 });
+        return withCors(NextResponse.json({ error: "Seed failed", details: error }, { status: 500 }), origin);
     }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
+    const origin = request.headers.get('origin');
     await dbConnect();
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -162,10 +170,10 @@ export async function DELETE(request: Request) {
         await session.commitTransaction();
         session.endSession();
 
-        return NextResponse.json({ message: 'Database cleared successfully' });
+        return withCors(NextResponse.json({ message: 'Database cleared successfully' }), origin);
     } catch (error: any) {
         await session.abortTransaction();
         session.endSession();
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return withCors(NextResponse.json({ error: error.message }, { status: 500 }), origin);
     }
 }

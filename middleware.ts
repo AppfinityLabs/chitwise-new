@@ -37,19 +37,20 @@ export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const origin = request.headers.get('origin');
 
+    console.log(`[Middleware] ${request.method} ${pathname} from origin: ${origin}`);
+
     // Handle preflight OPTIONS requests for CORS
     if (request.method === 'OPTIONS') {
+        console.log('[Middleware] Handling OPTIONS preflight');
         const headers = new Headers();
-        headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-        headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-        headers.set('Access-Control-Allow-Credentials', 'true');
-        headers.set('Access-Control-Max-Age', '86400');
+        const corsHeaders = getCorsHeaders(origin);
 
-        // Set Allow-Origin for any localhost or allowed origins
-        if (origin && (origin.startsWith('http://localhost:') || allowedOrigins.includes(origin))) {
-            headers.set('Access-Control-Allow-Origin', origin);
-        }
+        // Set all CORS headers on the Headers object
+        Object.entries(corsHeaders).forEach(([key, value]) => {
+            headers.set(key, value);
+        });
 
+        console.log('[Middleware] Returning CORS headers:', Object.fromEntries(headers.entries()));
         return new NextResponse(null, { status: 204, headers });
     }
 

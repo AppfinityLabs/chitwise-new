@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { comparePassword, signToken } from '@/lib/auth';
+import { handleCorsOptions, withCors } from '@/lib/cors';
+
+// Handle OPTIONS preflight for CORS
+export async function OPTIONS(request: NextRequest) {
+    return handleCorsOptions(request);
+}
 
 export async function POST(request: NextRequest) {
+    const origin = request.headers.get('origin');
     await dbConnect();
 
     try {
@@ -11,9 +18,9 @@ export async function POST(request: NextRequest) {
 
         // Validate input
         if (!email || !password) {
-            return NextResponse.json(
-                { error: 'Email and password are required' },
-                { status: 400 }
+            return withCors(
+                NextResponse.json({ error: 'Email and password are required' }, { status: 400 }),
+                origin
             );
         }
 
@@ -21,17 +28,17 @@ export async function POST(request: NextRequest) {
         const user = await User.findOne({ email: email.toLowerCase() });
 
         if (!user) {
-            return NextResponse.json(
-                { error: 'Invalid email or password' },
-                { status: 401 }
+            return withCors(
+                NextResponse.json({ error: 'Invalid email or password' }, { status: 401 }),
+                origin
             );
         }
 
         // Check if user is active
         if (user.status !== 'ACTIVE') {
-            return NextResponse.json(
-                { error: 'Your account has been deactivated. Please contact administrator.' },
-                { status: 403 }
+            return withCors(
+                NextResponse.json({ error: 'Your account has been deactivated. Please contact administrator.' }, { status: 403 }),
+                origin
             );
         }
 
@@ -39,13 +46,12 @@ export async function POST(request: NextRequest) {
         const isPasswordValid = await comparePassword(password, user.password);
 
         if (!isPasswordValid) {
-            return NextResponse.json(
-                { error: 'Invalid email or password' },
-                { status: 401 }
+            return withCors(
+                NextResponse.json({ error: 'Invalid email or password' }, { status: 401 }),
+                origin
             );
         }
 
-        // Generate JWT token
         // Generate JWT token
         const token = await signToken({
             userId: user._id.toString(),
@@ -82,12 +88,13 @@ export async function POST(request: NextRequest) {
             path: '/'
         });
 
-        return response;
+        // Add CORS headers to the response
+        return withCors(response, origin);
     } catch (error) {
         console.error('Login error:', error);
-        return NextResponse.json(
-            { error: 'An error occurred during login' },
-            { status: 500 }
+        return withCors(
+            NextResponse.json({ error: 'An error occurred during login' }, { status: 500 }),
+            origin
         );
     }
 }

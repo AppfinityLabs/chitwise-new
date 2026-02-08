@@ -4,11 +4,18 @@ import Collection from '@/models/Collection';
 import GroupMember from '@/models/GroupMember';
 import ChitGroup from '@/models/ChitGroup';
 import { verifyApiAuth } from '@/lib/apiAuth';
+import { handleCorsOptions, withCors } from '@/lib/cors';
+
+// Handle OPTIONS preflight for CORS
+export async function OPTIONS(request: NextRequest) {
+    return handleCorsOptions(request);
+}
 
 export async function GET(request: NextRequest) {
+    const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
     await dbConnect();
@@ -97,16 +104,16 @@ export async function GET(request: NextRequest) {
             value: item.total
         }));
 
-        return NextResponse.json({
+        return withCors(NextResponse.json({
             trends,
             distribution,
             paymentModeStats,
             recentTransactions,
             groupPerformance
-        });
+        }), origin);
 
     } catch (error) {
         console.error("Reports API Error:", error);
-        return NextResponse.json({ error: 'Failed to fetch report data' }, { status: 500 });
+        return withCors(NextResponse.json({ error: 'Failed to fetch report data' }, { status: 500 }), origin);
     }
 }

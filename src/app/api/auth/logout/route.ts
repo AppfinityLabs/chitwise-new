@@ -1,6 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { handleCorsOptions, withCors } from '@/lib/cors';
 
-export async function POST() {
+// Handle OPTIONS preflight for CORS
+export async function OPTIONS(request: NextRequest) {
+    return handleCorsOptions(request);
+}
+
+export async function POST(request: NextRequest) {
+    const origin = request.headers.get('origin');
     const response = NextResponse.json(
         { message: 'Logout successful' },
         { status: 200 }
@@ -15,5 +22,5 @@ export async function POST() {
         path: '/'
     });
 
-    return response;
+    return withCors(response, origin);
 }

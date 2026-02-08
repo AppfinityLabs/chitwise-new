@@ -5,15 +5,22 @@ import GroupMember from '@/models/GroupMember';
 import Collection from '@/models/Collection';
 import Winner from '@/models/Winner';
 import { verifyApiAuth } from '@/lib/apiAuth';
+import { handleCorsOptions, withCors } from '@/lib/cors';
 import mongoose from 'mongoose';
+
+// Handle OPTIONS preflight for CORS
+export async function OPTIONS(request: NextRequest) {
+    return handleCorsOptions(request);
+}
 
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
     await dbConnect();
@@ -21,7 +28,7 @@ export async function GET(
         const { id } = await params;
         let group = await ChitGroup.findById(id);
         if (!group) {
-            return NextResponse.json({ error: 'Group not found' }, { status: 404 });
+            return withCors(NextResponse.json({ error: 'Group not found' }, { status: 404 }), origin);
         }
 
         // Auto-update currentPeriod based on dates
@@ -39,27 +46,25 @@ export async function GET(
                 calculatedPeriod = Math.floor(diffDays / 7) + 1;
             } else if (group.frequency === 'MONTHLY') {
                 const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-                // Adjust for day of month? keeping simple for now
                 calculatedPeriod = diffMonths + 1;
             }
         }
 
         // Cap at totalPeriods
         if (calculatedPeriod > group.totalPeriods) {
-            calculatedPeriod = group.totalPeriods; // Or marked as completed
+            calculatedPeriod = group.totalPeriods;
         }
 
         // Update if significantly different (and strictly forward)
-        // We only move forward automatically, manually reverting is possible via edit if needed (not impl yet)
         if (calculatedPeriod > group.currentPeriod) {
             group.currentPeriod = calculatedPeriod;
             await group.save();
         }
 
-        return NextResponse.json(group);
+        return withCors(NextResponse.json(group), origin);
     } catch (error) {
         console.error("Group Fetch Error:", error);
-        return NextResponse.json({ error: 'Failed to fetch group' }, { status: 500 });
+        return withCors(NextResponse.json({ error: 'Failed to fetch group' }, { status: 500 }), origin);
     }
 }
 
@@ -67,9 +72,10 @@ export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
     await dbConnect();
@@ -84,7 +90,7 @@ export async function DELETE(
         if (!group) {
             await session.abortTransaction();
             session.endSession();
-            return NextResponse.json({ error: 'Group not found' }, { status: 404 });
+            return withCors(NextResponse.json({ error: 'Group not found' }, { status: 404 }), origin);
         }
 
         // Delete all collections related to this group
@@ -102,19 +108,19 @@ export async function DELETE(
         await session.commitTransaction();
         session.endSession();
 
-        return NextResponse.json({
+        return withCors(NextResponse.json({
             message: 'Group and all related data deleted successfully',
             deletedGroupId: id
-        });
+        }), origin);
 
     } catch (error: any) {
         await session.abortTransaction();
         session.endSession();
         console.error("Group Delete Error:", error);
-        return NextResponse.json({
+        return withCors(NextResponse.json({
             error: 'Failed to delete group',
             details: error.message
-        }, { status: 500 });
+        }, { status: 500 }), origin);
     }
 }
 
@@ -122,9 +128,10 @@ export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
     await dbConnect();
@@ -136,7 +143,7 @@ export async function PUT(
         // Check if group exists
         const group = await ChitGroup.findById(id);
         if (!group) {
-            return NextResponse.json({ error: 'Group not found' }, { status: 404 });
+            return withCors(NextResponse.json({ error: 'Group not found' }, { status: 404 }), origin);
         }
 
         // Update allowed fields
@@ -163,16 +170,16 @@ export async function PUT(
 
         await group.save();
 
-        return NextResponse.json({
+        return withCors(NextResponse.json({
             message: 'Group updated successfully',
             group
-        });
+        }), origin);
 
     } catch (error: any) {
         console.error("Group Update Error:", error);
-        return NextResponse.json({
+        return withCors(NextResponse.json({
             error: 'Failed to update group',
             details: error.message
-        }, { status: 500 });
+        }, { status: 500 }), origin);
     }
 }
