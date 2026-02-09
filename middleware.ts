@@ -62,9 +62,17 @@ export async function middleware(request: NextRequest) {
     const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
     const isPublicApiRoute = publicApiRoutes.some(route => pathname.startsWith(route));
 
-    // Get token from cookies for checking authentication
+    // Get token from cookies or Authorization header
     const cookieHeader = request.headers.get('cookie');
-    const token = getTokenFromCookies(cookieHeader);
+    let token = getTokenFromCookies(cookieHeader);
+
+    // Fallback to Bearer token
+    if (!token) {
+        const authHeader = request.headers.get('authorization');
+        if (authHeader?.startsWith('Bearer ')) {
+            token = authHeader.substring(7);
+        }
+    }
     const decoded = token ? await verifyToken(token) : null;
 
     // If user is authenticated and trying to access login page, redirect to dashboard

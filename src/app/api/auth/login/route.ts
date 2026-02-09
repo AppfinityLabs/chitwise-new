@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
         const response = NextResponse.json(
             {
                 message: 'Login successful',
+                token, // Return token for client-side storage (PWA/Mobile)
                 user: userData
             },
             { status: 200 }
