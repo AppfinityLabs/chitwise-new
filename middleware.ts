@@ -56,7 +56,22 @@ export async function middleware(request: NextRequest) {
 
     // Public routes that don't require authentication
     const publicRoutes = ['/login'];
-    const publicApiRoutes = ['/api/auth/login', '/api/seed'];
+    const publicApiRoutes = ['/api/auth/login', '/api/seed', '/api/push/vapid-key'];
+
+    // Allow cron routes authenticated with CRON_SECRET (external cron services)
+    if (pathname.startsWith('/api/cron/')) {
+        const authHeader = request.headers.get('authorization');
+        const cronSecret = process.env.CRON_SECRET;
+        const isInternalCron = request.headers.get('x-internal-cron') === 'true';
+        const hasCronSecret = cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+        if (hasCronSecret || isInternalCron) {
+            console.log(`[Middleware] Allowing cron route: ${pathname}`);
+            const response = NextResponse.next();
+            return response;
+        }
+        // If no valid cron auth, fall through to normal JWT auth flow
+    }
 
     // Check if the route is public
     const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
