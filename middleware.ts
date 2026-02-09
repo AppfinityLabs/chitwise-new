@@ -7,8 +7,10 @@ const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3002',
+    'http://localhost:3003',
     'https://chitwise-pwa.vercel.app',
     process.env.NEXT_PUBLIC_PWA_URL, // Add PWA URL in .env.local if needed
+    process.env.NEXT_PUBLIC_MEMBER_PWA_URL, // Member PWA URL
 ].filter(Boolean);
 
 // CORS headers helper
@@ -56,7 +58,7 @@ export async function middleware(request: NextRequest) {
 
     // Public routes that don't require authentication
     const publicRoutes = ['/login'];
-    const publicApiRoutes = ['/api/auth/login', '/api/seed', '/api/push/vapid-key'];
+    const publicApiRoutes = ['/api/auth/login', '/api/seed', '/api/push/vapid-key', '/api/member/auth/login', '/api/member/auth/logout'];
 
     // Allow cron routes authenticated with CRON_SECRET (external cron services)
     if (pathname.startsWith('/api/cron/')) {

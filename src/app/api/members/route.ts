@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import Member from '@/models/Member';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { hashPassword } from '@/lib/auth';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -54,6 +55,14 @@ export async function POST(request: NextRequest) {
             if (!body.organisationId) {
                 return withCors(NextResponse.json({ error: 'Organisation ID is required for Super Admin' }, { status: 400 }), origin);
             }
+        }
+
+        // Hash PIN if provided
+        if (body.pin) {
+            if (body.pin.length !== 4 || !/^\d{4}$/.test(body.pin)) {
+                return withCors(NextResponse.json({ error: 'PIN must be exactly 4 digits' }, { status: 400 }), origin);
+            }
+            body.pin = await hashPassword(body.pin);
         }
 
         const member = await Member.create(body);

@@ -1,4 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import '@/models/ChitGroup';
+import '@/models/Member';
 
 export interface IGroupMember extends Document {
     memberId: mongoose.Schema.Types.ObjectId;
