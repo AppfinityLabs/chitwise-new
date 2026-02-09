@@ -85,10 +85,20 @@ export async function POST(request: NextRequest) {
             return withCors(NextResponse.json({ error: 'Group not found' }, { status: 404 }), origin);
         }
 
-        // 2. Calculate Total Due
+        // 2. Validate unit allocation - check total enrolled units won't exceed group capacity
+        const existingSubscriptions = await GroupMember.find({ groupId, status: 'ACTIVE' });
+        const totalAllocatedUnits = existingSubscriptions.reduce((sum: number, sub: any) => sum + sub.units, 0);
+        if (totalAllocatedUnits + units > group.totalUnits) {
+            const availableUnits = group.totalUnits - totalAllocatedUnits;
+            return withCors(NextResponse.json({
+                error: `Cannot allocate ${units} unit(s). Only ${availableUnits} unit(s) available out of ${group.totalUnits} total.`
+            }, { status: 400 }), origin);
+        }
+
+        // 3. Calculate Total Due
         const totalDue = group.contributionAmount * group.totalPeriods * units;
 
-        // 3. Determine Collection Factor
+        // 4. Determine Collection Factor
         let collectionFactor = 1;
         const baseFreq = group.frequency;
         const pattern = collectionPattern;
@@ -104,7 +114,7 @@ export async function POST(request: NextRequest) {
             collectionFactor = 1; // Can't go more granular than daily usually
         }
 
-        // 4. Create Subscription
+        // 5. Create Subscription
         const subscription = await GroupMember.create({
             groupId,
             memberId,
