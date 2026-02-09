@@ -7,6 +7,7 @@ const allowedOrigins = [
     'http://localhost:3002',
     'http://localhost:3003',
     'https://chitwise-pwa.vercel.app',
+    'https://chitwise-member.vercel.app',
     process.env.NEXT_PUBLIC_PWA_URL,
     process.env.NEXT_PUBLIC_MEMBER_PWA_URL,
 ].filter(Boolean) as string[];
