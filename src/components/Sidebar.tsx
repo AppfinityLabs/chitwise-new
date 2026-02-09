@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Layers, CreditCard, Settings, PieChart, Building2, LogOut, UserCog } from 'lucide-react';
+import { Home, Users, Layers, CreditCard, Settings, PieChart, Building2, LogOut, UserCog, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
@@ -13,6 +13,7 @@ const menuItems = [
     { icon: Users, label: 'Members', href: '/members' },
     { icon: CreditCard, label: 'Collections', href: '/collections' },
     { icon: Building2, label: 'Organisations', href: '/organisations' },
+    { icon: Bell, label: 'Notifications', href: '/notifications' },
     { icon: PieChart, label: 'Reports', href: '/reports' },
     { icon: UserCog, label: 'System Users', href: '/users' },
     { icon: Settings, label: 'Settings', href: '/settings' },
