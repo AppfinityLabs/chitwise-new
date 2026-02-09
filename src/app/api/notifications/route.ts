@@ -11,7 +11,7 @@ export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
 }
 
-// Get all notifications
+// Get all notifications (with pagination)
 export async function GET(request: NextRequest) {
     const origin = request.headers.get('origin');
     const user = await verifyApiAuth(request);
@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
         return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
-    // Only SUPER_ADMIN can manage notifications
     if (user.role !== 'SUPER_ADMIN') {
         return withCors(NextResponse.json({ error: 'Forbidden' }, { status: 403 }), origin);
     }
@@ -28,12 +27,28 @@ export async function GET(request: NextRequest) {
     await dbConnect();
 
     try {
-        const notifications = await Notification.find()
-            .sort({ createdAt: -1 })
-            .populate('createdBy', 'name email')
-            .limit(100);
+        const { searchParams } = new URL(request.url);
+        const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+        const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')));
+        const status = searchParams.get('status');
+        const skip = (page - 1) * limit;
 
-        return withCors(NextResponse.json(notifications), origin);
+        const query: any = {};
+        if (status) query.status = status;
+
+        const [notifications, total] = await Promise.all([
+            Notification.find(query)
+                .sort({ createdAt: -1 })
+                .populate('createdBy', 'name email')
+                .skip(skip)
+                .limit(limit),
+            Notification.countDocuments(query)
+        ]);
+
+        return withCors(NextResponse.json({
+            notifications,
+            pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+        }), origin);
     } catch (error) {
         return withCors(NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 }), origin);
     }
@@ -56,7 +71,18 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const { title, body: notificationBody, url, targetType, targetId, sendNow } = body;
+        const {
+            title,
+            body: notificationBody,
+            url,
+            image,
+            priority,
+            targetType,
+            targetId,
+            sendNow,
+            scheduledAt,
+            templateId,
+        } = body;
 
         if (!title || !notificationBody) {
             return withCors(
@@ -65,14 +91,33 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Determine status
+        let status: 'DRAFT' | 'SCHEDULED' | 'SENT' = 'DRAFT';
+        if (sendNow) {
+            status = 'SENT';
+        } else if (scheduledAt) {
+            const scheduledDate = new Date(scheduledAt);
+            if (scheduledDate <= new Date()) {
+                return withCors(
+                    NextResponse.json({ error: 'Scheduled time must be in the future' }, { status: 400 }),
+                    origin
+                );
+            }
+            status = 'SCHEDULED';
+        }
+
         // Create notification record
         const notification = await Notification.create({
             title,
             body: notificationBody,
             url: url || '/',
+            image: image || undefined,
+            priority: priority || 'normal',
             targetType: targetType || 'ALL',
             targetId,
-            status: sendNow ? 'SENT' : 'DRAFT',
+            status,
+            scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+            templateId: templateId || undefined,
             createdBy: user.userId
         });
 
@@ -96,7 +141,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper function to send notifications to targets
-async function sendNotificationToTargets(notification: any): Promise<{ sent: number; failed: number }> {
+export async function sendNotificationToTargets(notification: any): Promise<{ sent: number; failed: number }> {
     let query: any = {};
 
     if (notification.targetType === 'ORGANISATION' && notification.targetId) {
@@ -104,7 +149,6 @@ async function sendNotificationToTargets(notification: any): Promise<{ sent: num
     } else if (notification.targetType === 'USER' && notification.targetId) {
         query.userId = notification.targetId;
     }
-    // For 'ALL', no filter needed
 
     const subscriptions = await PushSubscription.find(query);
 
@@ -112,22 +156,27 @@ async function sendNotificationToTargets(notification: any): Promise<{ sent: num
         title: notification.title,
         body: notification.body,
         url: notification.url || '/',
+        image: notification.image || undefined,
+        priority: notification.priority || 'normal',
         tag: `notification-${notification._id}`
     };
 
     let sent = 0;
     let failed = 0;
 
-    for (const sub of subscriptions) {
-        try {
-            const success = await sendToSubscription(sub.subscription, payload);
-            if (success) {
+    // Send in parallel batches of 10
+    const batchSize = 10;
+    for (let i = 0; i < subscriptions.length; i += batchSize) {
+        const batch = subscriptions.slice(i, i + batchSize);
+        const results = await Promise.allSettled(
+            batch.map(sub => sendToSubscription(sub.subscription, payload))
+        );
+        for (const result of results) {
+            if (result.status === 'fulfilled' && result.value) {
                 sent++;
             } else {
                 failed++;
             }
-        } catch {
-            failed++;
         }
     }
 

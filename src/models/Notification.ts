@@ -5,13 +5,16 @@ export interface INotification extends Document {
     body: string;
     url?: string;
     icon?: string;
+    image?: string;
+    priority: 'normal' | 'urgent';
     targetType: 'ALL' | 'ORGANISATION' | 'USER';
-    targetId?: mongoose.Types.ObjectId; // organisationId or userId
+    targetId?: mongoose.Types.ObjectId;
     status: 'DRAFT' | 'SCHEDULED' | 'SENT' | 'FAILED';
     scheduledAt?: Date;
     sentAt?: Date;
     successCount: number;
     failCount: number;
+    templateId?: mongoose.Types.ObjectId;
     createdBy: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
@@ -22,6 +25,12 @@ const NotificationSchema = new Schema<INotification>({
     body: { type: String, required: true, maxlength: 500 },
     url: { type: String },
     icon: { type: String },
+    image: { type: String },
+    priority: {
+        type: String,
+        enum: ['normal', 'urgent'],
+        default: 'normal'
+    },
     targetType: {
         type: String,
         enum: ['ALL', 'ORGANISATION', 'USER'],
@@ -29,7 +38,6 @@ const NotificationSchema = new Schema<INotification>({
     },
     targetId: {
         type: Schema.Types.ObjectId,
-        // Reference can be Organisation or User depending on targetType
     },
     status: {
         type: String,
@@ -40,6 +48,10 @@ const NotificationSchema = new Schema<INotification>({
     sentAt: Date,
     successCount: { type: Number, default: 0 },
     failCount: { type: Number, default: 0 },
+    templateId: {
+        type: Schema.Types.ObjectId,
+        ref: 'NotificationTemplate',
+    },
     createdBy: {
         type: Schema.Types.ObjectId,
         ref: 'User',
@@ -51,6 +63,7 @@ const NotificationSchema = new Schema<INotification>({
 
 // Indexes for query performance
 NotificationSchema.index({ status: 1, createdAt: -1 });
+NotificationSchema.index({ status: 1, scheduledAt: 1 });
 NotificationSchema.index({ createdBy: 1 });
 NotificationSchema.index({ targetType: 1, targetId: 1 });
 

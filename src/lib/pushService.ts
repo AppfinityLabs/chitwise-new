@@ -16,8 +16,10 @@ export interface PushPayload {
     body: string;
     url?: string;
     icon?: string;
+    image?: string;
     badge?: string;
     tag?: string;
+    priority?: 'normal' | 'urgent';
     data?: Record<string, any>;
 }
 
@@ -39,8 +41,10 @@ export async function sendToSubscription(
                 body: payload.body,
                 icon: payload.icon || '/icons/icon-192.png',
                 badge: payload.badge || '/icons/icon-192.png',
+                image: payload.image || undefined,
                 url: payload.url || '/',
                 tag: payload.tag,
+                priority: payload.priority || 'normal',
                 data: payload.data
             })
         );
