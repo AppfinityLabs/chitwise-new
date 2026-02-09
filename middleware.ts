@@ -73,7 +73,18 @@ export async function middleware(request: NextRequest) {
             token = authHeader.substring(7);
         }
     }
-    const decoded = token ? await verifyToken(token) : null;
+    let decoded = null;
+    if (token) {
+        try {
+            console.log(`[Middleware] Verifying token: ${token.substring(0, 10)}...`);
+            decoded = await verifyToken(token);
+            console.log(`[Middleware] Verification result: ${decoded ? 'Success' : 'Failed'}`);
+        } catch (e) {
+            console.error('[Middleware] Unexpected error verifying token:', e);
+        }
+    } else {
+        console.log('[Middleware] No token found in Cookie or Authorization header');
+    }
 
     // If user is authenticated and trying to access login page, redirect to dashboard
     if (isPublicRoute && decoded && pathname === '/login') {

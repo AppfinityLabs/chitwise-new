@@ -1,13 +1,23 @@
 import { NextRequest } from 'next/server';
-import { verifyUserFromRequest } from './auth';
+import { verifyUserFromRequest, verifyToken } from './auth';
 
 /**
  * Verify authentication for API routes
  * Returns the decoded JWT payload or null if unauthorized
  */
 export async function verifyApiAuth(request: NextRequest) {
+    // 1. Try Cookie
     const cookieHeader = request.headers.get('cookie');
-    const decoded = await verifyUserFromRequest(cookieHeader);
+    let decoded = await verifyUserFromRequest(cookieHeader);
+
+    // 2. Try Authorization Header (Bearer)
+    if (!decoded) {
+        const authHeader = request.headers.get('authorization');
+        if (authHeader?.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            decoded = await verifyToken(token);
+        }
+    }
 
     return decoded;
 }

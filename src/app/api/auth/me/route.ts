@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
-import { verifyUserFromRequest } from '@/lib/auth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { verifyApiAuth } from '@/lib/apiAuth';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -14,9 +14,8 @@ export async function GET(request: NextRequest) {
     await dbConnect();
 
     try {
-        // Verify token from cookies
-        const cookieHeader = request.headers.get('cookie');
-        const decoded = await verifyUserFromRequest(cookieHeader);
+        // Verify auth (Cookie or Bearer)
+        const decoded = await verifyApiAuth(request);
 
         if (!decoded) {
             return withCors(
