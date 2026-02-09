@@ -10,17 +10,19 @@ import { sendNotificationToTargets } from '../../notifications/route';
 // Set up as Vercel Cron or external cron hitting this endpoint every minute
 
 export async function GET(request: NextRequest) {
-    // Verify cron secret
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
+    const isInternal = request.headers.get('x-internal-cron') === 'true';
 
-    if (!cronSecret) {
-        return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 });
-    }
-
-    const token = authHeader?.replace('Bearer ', '');
-    if (token !== cronSecret) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Allow internal calls (from admin page polling) or with correct CRON_SECRET
+    if (!isInternal) {
+        if (!cronSecret) {
+            return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 });
+        }
+        const token = authHeader?.replace('Bearer ', '');
+        if (token !== cronSecret) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
     }
 
     if (!isPushConfigured()) {

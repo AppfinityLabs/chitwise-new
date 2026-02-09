@@ -105,6 +105,32 @@ export default function NotificationsPage() {
         }
     }, [user, authLoading, router]);
 
+    // Auto-poll for scheduled notifications every 30 seconds
+    useEffect(() => {
+        if (!user || user.role !== 'SUPER_ADMIN') return;
+
+        const checkScheduled = async () => {
+            try {
+                const res = await fetch('/api/cron/notifications', {
+                    headers: { 'x-internal-cron': 'true' }
+                });
+                const data = await res.json();
+                if (data.processed > 0) {
+                    console.log(`📤 Cron: ${data.processed} scheduled notifications sent`);
+                    fetchNotifications();
+                }
+            } catch (err) {
+                // Silent fail for cron polling
+            }
+        };
+
+        // Check immediately on mount, then every 30s
+        checkScheduled();
+        const interval = setInterval(checkScheduled, 30000);
+        return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
+
     async function fetchNotifications() {
         try {
             const res = await fetch('/api/notifications');
