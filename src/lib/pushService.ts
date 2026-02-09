@@ -41,11 +41,11 @@ export async function sendToSubscription(
                 body: payload.body,
                 icon: payload.icon || '/icons/icon-192.png',
                 badge: payload.badge || '/icons/icon-192.png',
-                image: payload.image || undefined,
                 url: payload.url || '/',
                 tag: payload.tag,
                 priority: payload.priority || 'normal',
-                data: payload.data
+                data: payload.data,
+                ...(payload.image ? { image: payload.image } : {}),
             })
         );
         console.log('✅ Push sent successfully to:', subscription.endpoint.substring(0, 60) + '...');
