@@ -6,7 +6,6 @@ import ChitGroup from '@/models/ChitGroup';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import mongoose from 'mongoose';
-import { sendToUser, isPushConfigured } from '@/lib/pushService';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -129,17 +128,6 @@ export async function POST(request: NextRequest) {
 
         await session.commitTransaction();
         session.endSession();
-
-        // Send push notification to the member (fire and forget)
-        if (isPushConfigured()) {
-            const memberName = subscription.memberId?.name || 'Member';
-            sendToUser(subscription.memberId._id.toString(), {
-                title: 'Collection Recorded 💰',
-                body: `₹${amountPaid} collected for period ${basePeriodNumber}`,
-                url: '/collections',
-                tag: `collection-${newCollection[0]._id}`
-            }).catch(err => console.error('Push notification error:', err));
-        }
 
         return withCors(NextResponse.json(newCollection[0], { status: 201 }), origin);
 

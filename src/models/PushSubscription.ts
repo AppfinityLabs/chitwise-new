@@ -39,9 +39,8 @@ const PushSubscriptionSchema = new Schema<IPushSubscription>({
     lastUsed: Date
 });
 
-// Index for efficient lookups
+// Compound index for efficient lookups (field-level indexes already set via index: true)
 PushSubscriptionSchema.index({ userId: 1, 'subscription.endpoint': 1 });
-PushSubscriptionSchema.index({ organisationId: 1 });
 
 export default mongoose.models.PushSubscription ||
     mongoose.model<IPushSubscription>('PushSubscription', PushSubscriptionSchema);

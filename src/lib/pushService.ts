@@ -44,6 +44,7 @@ export async function sendToSubscription(
                 data: payload.data
             })
         );
+        console.log('✅ Push sent successfully to:', subscription.endpoint.substring(0, 60) + '...');
         return true;
     } catch (error: any) {
         // Handle expired/invalid subscriptions
