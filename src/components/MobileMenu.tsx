@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, PieChart, Settings, UserCog, LogOut, X, Bell } from 'lucide-react';
+import { Building2, PieChart, Settings, UserCog, LogOut, X, Bell, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -13,6 +13,7 @@ interface MobileMenuProps {
 }
 
 const menuItems = [
+    { icon: Trophy, label: 'Winners', href: '/winners' },
     { icon: Building2, label: 'Organisations', href: '/organisations' },
     { icon: Bell, label: 'Notifications', href: '/notifications' },
     { icon: PieChart, label: 'Reports', href: '/reports' },

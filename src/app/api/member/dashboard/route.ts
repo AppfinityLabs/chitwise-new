@@ -7,6 +7,7 @@ import ChitGroup from '@/models/ChitGroup';
 import Member from '@/models/Member';
 import { verifyMemberAuth } from '@/lib/memberAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { calculateOverdueAmount } from '@/lib/utils';
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
@@ -37,17 +38,13 @@ export async function GET(request: NextRequest) {
         // Total pending across all groups
         const totalPending = subscriptions.reduce((sum, s) => sum + s.pendingAmount, 0);
 
-        // Calculate overdue amounts (no overdue if group hasn't started yet)
+        // Calculate overdue amounts using shared utility (dynamic, not stale DB value)
         const now = new Date();
         let totalOverdue = 0;
         for (const sub of activeSubscriptions) {
             const group = sub.groupId as any;
             if (group) {
-                const groupStarted = group.startDate ? new Date(group.startDate) <= now : true;
-                const effectivePeriod = groupStarted ? group.currentPeriod : 0;
-                const expectedAmount = effectivePeriod * group.contributionAmount * sub.units;
-                const overdueAmount = Math.max(0, expectedAmount - sub.totalCollected);
-                totalOverdue += overdueAmount;
+                totalOverdue += calculateOverdueAmount(group, sub);
             }
         }
 
@@ -61,10 +58,7 @@ export async function GET(request: NextRequest) {
         const upcomingDues = activeSubscriptions
             .map(sub => {
                 const group = sub.groupId as any;
-                const groupStarted = group?.startDate ? new Date(group.startDate) <= now : true;
-                const effectivePeriod = groupStarted ? (group?.currentPeriod || 0) : 0;
-                const expectedAmount = group ? effectivePeriod * group.contributionAmount * sub.units : 0;
-                const overdueAmount = Math.max(0, expectedAmount - sub.totalCollected);
+                const overdueAmount = group ? calculateOverdueAmount(group, sub) : 0;
                 return {
                     _id: sub._id,
                     groupName: group?.groupName || 'Unknown',

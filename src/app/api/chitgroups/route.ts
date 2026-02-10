@@ -4,6 +4,7 @@ import ChitGroup from '@/models/ChitGroup';
 import '@/models/Organisation'; // Required for populate
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { calculateCurrentPeriod } from '@/lib/utils';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -37,7 +38,15 @@ export async function GET(request: NextRequest) {
         const groups = await ChitGroup.find(query)
             .sort({ createdAt: -1 })
             .populate('organisationId', 'name code');
-        return withCors(NextResponse.json(groups), origin);
+
+        // Dynamically calculate currentPeriod for each group
+        const groupsWithPeriod = groups.map(g => {
+            const obj = g.toObject();
+            obj.currentPeriod = calculateCurrentPeriod(g);
+            return obj;
+        });
+
+        return withCors(NextResponse.json(groupsWithPeriod), origin);
     } catch (error: any) {
         console.error('Error fetching groups:', error);
         return withCors(NextResponse.json({ error: 'Failed to fetch groups', details: error.message }, { status: 500 }), origin);

@@ -5,6 +5,7 @@ import ChitGroup from '@/models/ChitGroup';
 import GroupMember from '@/models/GroupMember'; // To verify subscription
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { notifyWinnerAnnouncement } from '@/lib/eventNotifications';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -103,6 +104,14 @@ export async function POST(request: NextRequest) {
             return withCors(NextResponse.json({ error: 'Invalid GroupMember subscription' }, { status: 400 }), origin);
         }
 
+        // Check for duplicate winner for the same group and period
+        const existingWinner = await Winner.findOne({ groupId, basePeriodNumber });
+        if (existingWinner) {
+            return withCors(NextResponse.json({ 
+                error: `A winner has already been declared for period ${basePeriodNumber} in this group` 
+            }, { status: 409 }), origin);
+        }
+
         // Create Winner
         const newWinner = await Winner.create({
             groupId,
@@ -117,6 +126,20 @@ export async function POST(request: NextRequest) {
             payoutDate: payoutDate || undefined,
             remarks
         });
+
+        // Fire-and-forget: notify winning member
+        const group = await ChitGroup.findById(groupId).select('groupName').lean();
+        const memberDoc = await (await import('@/models/Member')).default.findById(memberId).select('name').lean();
+        if (group && memberDoc) {
+            notifyWinnerAnnouncement({
+                memberId: memberId.toString(),
+                memberName: (memberDoc as any).name,
+                groupName: (group as any).groupName,
+                groupId: groupId.toString(),
+                prizeAmount,
+                periodNumber: basePeriodNumber,
+            }).catch(() => {}); // non-blocking
+        }
 
         return withCors(NextResponse.json(newWinner, { status: 201 }), origin);
 

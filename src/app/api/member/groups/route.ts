@@ -5,6 +5,7 @@ import Member from '@/models/Member';
 import GroupMember from '@/models/GroupMember';
 import { verifyMemberAuth } from '@/lib/memberAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { calculateOverdueAmount, calculatePaymentStatus } from '@/lib/utils';
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
@@ -25,19 +26,16 @@ export async function GET(request: NextRequest) {
             .populate('groupId', 'groupName frequency contributionAmount currentPeriod totalPeriods status startDate endDate totalUnits commissionValue')
             .sort({ createdAt: -1 });
 
-        // Calculate dynamic overdue for each subscription
-        const now = new Date();
+        // Calculate dynamic overdue using shared utility (not stale DB currentPeriod)
         const subscriptionsWithDue = subscriptions.map(sub => {
             const group = sub.groupId as any;
-            // If group hasn't started yet, no overdue
-            const groupStarted = group?.startDate ? new Date(group.startDate) <= now : true;
-            const effectivePeriod = groupStarted ? (group?.currentPeriod || 0) : 0;
-            const expectedAmount = group ? effectivePeriod * group.contributionAmount * sub.units : 0;
-            const overdueAmount = Math.max(0, expectedAmount - sub.totalCollected);
+            const overdueAmount = group ? calculateOverdueAmount(group, sub) : 0;
+            const paymentStatus = group ? calculatePaymentStatus(group, sub) : 'NOT_STARTED';
 
             return {
                 ...sub.toObject(),
                 overdueAmount,
+                paymentStatus,
             };
         });
 

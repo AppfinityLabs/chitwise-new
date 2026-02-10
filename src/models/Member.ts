@@ -16,7 +16,7 @@ export interface IMember extends Document {
 
 const MemberSchema = new Schema<IMember>({
     name: { type: String, required: true },
-    phone: { type: String, required: true, unique: true },
+    phone: { type: String, required: true },
     email: { type: String },
     address: { type: String },
     pin: { type: String }, // 4-digit PIN, stored as bcrypt hash
@@ -24,5 +24,8 @@ const MemberSchema = new Schema<IMember>({
     kycVerified: { type: Boolean, default: false },
     organisationId: { type: Schema.Types.ObjectId, ref: 'Organisation', required: true },
 }, { timestamps: true });
+
+// Phone uniqueness per organisation (not global)
+MemberSchema.index({ phone: 1, organisationId: 1 }, { unique: true });
 
 export default mongoose.models.Member || mongoose.model<IMember>('Member', MemberSchema);

@@ -6,6 +6,7 @@ import ChitGroup from '@/models/ChitGroup';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import mongoose from 'mongoose';
+import { notifyPaymentConfirmation } from '@/lib/eventNotifications';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -95,6 +96,17 @@ export async function POST(request: NextRequest) {
             }, { status: 400 }), origin);
         }
 
+        // Validate basePeriodNumber range
+        // @ts-ignore
+        if (!basePeriodNumber || basePeriodNumber < 1 || basePeriodNumber > group.totalPeriods) {
+            await session.abortTransaction();
+            session.endSession();
+            return withCors(NextResponse.json({
+                // @ts-ignore
+                error: `Period number must be between 1 and ${group.totalPeriods}`
+            }, { status: 400 }), origin);
+        }
+
         // @ts-ignore
         const contributionPerPeriod = group.contributionAmount * subscription.units;
         const amountDuePerCollection = contributionPerPeriod / subscription.collectionFactor;
@@ -120,8 +132,9 @@ export async function POST(request: NextRequest) {
             collectionSequence,
             periodDate: periodDate || new Date(),
             amountDue: amountDuePerCollection,
-            amountPaid, // Assuming exact match or capturing partial as paid
+            amountPaid,
             paymentMode,
+            collectedBy: user.userId, // Track who collected
             remarks,
             status: 'PAID'
         }], { session });
@@ -139,6 +152,20 @@ export async function POST(request: NextRequest) {
 
         await session.commitTransaction();
         session.endSession();
+
+        // Fire-and-forget: notify member of payment confirmation
+        const memberDoc = await (await import('@/models/Member')).default.findById(subscription.memberId).select('name').lean();
+        if (memberDoc) {
+            notifyPaymentConfirmation({
+                memberId: subscription.memberId.toString(),
+                memberName: (memberDoc as any).name,
+                // @ts-ignore
+                groupName: group.groupName,
+                groupId: subscription.groupId._id.toString(),
+                amountPaid,
+                periodNumber: basePeriodNumber,
+            }).catch(() => {}); // non-blocking
+        }
 
         return withCors(NextResponse.json(newCollection[0], { status: 201 }), origin);
 

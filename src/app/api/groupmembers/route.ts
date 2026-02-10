@@ -5,6 +5,8 @@ import ChitGroup from '@/models/ChitGroup';
 import Member from '@/models/Member'; // Ensure model is registered
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { calculateCurrentPeriod, calculateOverdueAmount, calculatePaymentStatus } from '@/lib/utils';
+import { notifyEnrollment } from '@/lib/eventNotifications';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -48,19 +50,16 @@ export async function GET(request: NextRequest) {
             .populate('memberId', 'name phone')
             .populate('groupId', 'groupName frequency contributionAmount currentPeriod startDate');
 
-        // Calculate dynamic overdue amount
-        const now = new Date();
+        // Calculate dynamic overdue amount using shared utility
         const subscriptionsWithDue = subscriptions.map(sub => {
             const group = sub.groupId as any;
-            // If group hasn't started yet, no overdue
-            const groupStarted = group?.startDate ? new Date(group.startDate) <= now : true;
-            const effectivePeriod = groupStarted ? (group?.currentPeriod || 0) : 0;
-            const expectedAmount = effectivePeriod * group.contributionAmount * sub.units;
-            const overdueAmount = Math.max(0, expectedAmount - sub.totalCollected);
+            const overdueAmount = group ? calculateOverdueAmount(group, sub) : 0;
+            const paymentStatus = group ? calculatePaymentStatus(group, sub) : 'NOT_STARTED';
 
             return {
                 ...sub.toObject(),
-                overdueAmount
+                overdueAmount,
+                paymentStatus
             };
         });
 
@@ -98,6 +97,13 @@ export async function POST(request: NextRequest) {
             }, { status: 400 }), origin);
         }
 
+        // 2b. Enforce allowCustomCollectionPattern
+        if (!group.allowCustomCollectionPattern && collectionPattern !== group.frequency) {
+            return withCors(NextResponse.json({
+                error: `This group does not allow custom collection patterns. Collection pattern must be ${group.frequency}.`
+            }, { status: 400 }), origin);
+        }
+
         // 3. Calculate Total Due
         const totalDue = group.contributionAmount * group.totalPeriods * units;
 
@@ -130,6 +136,15 @@ export async function POST(request: NextRequest) {
             pendingAmount: totalDue,
             status: 'ACTIVE'
         });
+
+        // Fire-and-forget: notify member of enrollment
+        notifyEnrollment({
+            memberId: memberId.toString(),
+            groupName: group.groupName,
+            groupId: groupId.toString(),
+            units,
+            totalDue,
+        }).catch(() => {}); // non-blocking
 
         return withCors(NextResponse.json(subscription, { status: 201 }), origin);
 

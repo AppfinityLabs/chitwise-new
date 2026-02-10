@@ -101,7 +101,10 @@ export const subscriptionsApi = {
         const query = params.toString() ? `?${params.toString()}` : '';
         return api<any[]>(`/api/groupmembers${query}`);
     },
+    get: (id: string) => api<any>(`/api/groupmembers/${id}`),
     create: (data: any) => api<any>('/api/groupmembers', { method: 'POST', body: data }),
+    update: (id: string, data: any) => api<any>(`/api/groupmembers/${id}`, { method: 'PUT', body: data }),
+    delete: (id: string) => api<any>(`/api/groupmembers/${id}`, { method: 'DELETE' }),
 };
 
 // =============================================================================
@@ -116,7 +119,10 @@ export const collectionsApi = {
         const query = params.toString() ? `?${params.toString()}` : '';
         return api<any[]>(`/api/collections${query}`);
     },
+    get: (id: string) => api<any>(`/api/collections/${id}`),
     create: (data: any) => api<any>('/api/collections', { method: 'POST', body: data }),
+    update: (id: string, data: any) => api<any>(`/api/collections/${id}`, { method: 'PUT', body: data }),
+    delete: (id: string) => api<any>(`/api/collections/${id}`, { method: 'DELETE' }),
 };
 
 // =============================================================================
@@ -129,7 +135,10 @@ export const winnersApi = {
         const query = params.toString() ? `?${params.toString()}` : '';
         return api<any[]>(`/api/winners${query}`);
     },
+    get: (id: string) => api<any>(`/api/winners/${id}`),
     create: (data: any) => api<any>('/api/winners', { method: 'POST', body: data }),
+    update: (id: string, data: any) => api<any>(`/api/winners/${id}`, { method: 'PUT', body: data }),
+    delete: (id: string) => api<any>(`/api/winners/${id}`, { method: 'DELETE' }),
 };
 
 // =============================================================================

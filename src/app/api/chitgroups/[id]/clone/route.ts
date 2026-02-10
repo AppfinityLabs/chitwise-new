@@ -42,8 +42,9 @@ export async function POST(
             allowCustomCollectionPattern: originalGroup.allowCustomCollectionPattern,
             subscriptionAmount: originalGroup.subscriptionAmount,
             subscriptionFrequency: originalGroup.subscriptionFrequency,
+            organisationId: originalGroup.organisationId,
             startDate: new Date(), // Set to current date
-            currentPeriod: 1, // Reset to period 1
+            currentPeriod: 0, // Reset to 0 (not started)
             status: 'ACTIVE', // Reset to active
         };
 

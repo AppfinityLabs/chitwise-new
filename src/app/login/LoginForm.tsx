@@ -133,9 +133,9 @@ export default function LoginForm() {
                                 <label htmlFor="password" className="block text-sm font-medium text-zinc-300">
                                     Password
                                 </label>
-                                <a href="#" className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+                                <span className="text-xs font-medium text-zinc-600 cursor-not-allowed" title="Contact your administrator to reset password">
                                     Forgot password?
-                                </a>
+                                </span>
                             </div>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -182,24 +182,10 @@ export default function LoginForm() {
                         </button>
                     </form>
 
-                    {/* Footer / Demo Creds */}
+                    {/* Footer */}
                     <div className="mt-10 border-t border-zinc-800/50 pt-6">
-                        <div className="bg-indigo-500/5 rounded-xl p-4 border border-indigo-500/10 mb-6">
-                            <h4 className="text-xs font-semibold text-indigo-300 uppercase tracking-wider mb-2">Demo Access</h4>
-                            <div className="flex items-center justify-between text-sm">
-                                <div>
-                                    <span className="text-zinc-500">Email:</span>
-                                    <code className="ml-2 text-zinc-300 font-mono bg-zinc-900 px-1 py-0.5 rounded">admin@gmail.com</code>
-                                </div>
-                                <div>
-                                    <span className="text-zinc-500">Pass:</span>
-                                    <code className="ml-2 text-zinc-300 font-mono bg-zinc-900 px-1 py-0.5 rounded">Admin@123</code>
-                                </div>
-                            </div>
-                        </div>
-
                         <p className="text-center text-zinc-500 text-sm">
-                            © 2026 ChitWise. All rights reserved.
+                            © {new Date().getFullYear()} ChitWise. All rights reserved.
                         </p>
                     </div>
                 </div>

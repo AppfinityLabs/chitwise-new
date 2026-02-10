@@ -6,6 +6,7 @@ import Collection from '@/models/Collection';
 import Winner from '@/models/Winner';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { calculateCurrentPeriod } from '@/lib/utils';
 import mongoose from 'mongoose';
 
 // Handle OPTIONS preflight for CORS
@@ -31,27 +32,8 @@ export async function GET(
             return withCors(NextResponse.json({ error: 'Group not found' }, { status: 404 }), origin);
         }
 
-        // Auto-update currentPeriod based on dates
-        const now = new Date();
-        const start = new Date(group.startDate);
-        let calculatedPeriod = 0; // 0 = group hasn't started yet
-
-        if (now >= start) {
-            const diffTime = Math.abs(now.getTime() - start.getTime());
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            if (group.frequency === 'DAILY') {
-                calculatedPeriod = diffDays + 1;
-            } else if (group.frequency === 'WEEKLY') {
-                calculatedPeriod = Math.floor(diffDays / 7) + 1;
-            } else if (group.frequency === 'MONTHLY') {
-                const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-                calculatedPeriod = diffMonths + 1;
-            }
-        }
-
-        // Cap at totalPeriods
-        calculatedPeriod = Math.min(calculatedPeriod, group.totalPeriods);
+        // Auto-update currentPeriod using shared utility
+        const calculatedPeriod = calculateCurrentPeriod(group);
 
         // Update if changed (allow correction in both directions)
         if (calculatedPeriod !== group.currentPeriod) {
@@ -89,6 +71,15 @@ export async function DELETE(
             await session.abortTransaction();
             session.endSession();
             return withCors(NextResponse.json({ error: 'Group not found' }, { status: 404 }), origin);
+        }
+
+        // Org scope check: ORG_ADMIN can only delete their own org's groups
+        if (user.role === 'ORG_ADMIN' && user.organisationId) {
+            if (group.organisationId.toString() !== user.organisationId.toString()) {
+                await session.abortTransaction();
+                session.endSession();
+                return withCors(NextResponse.json({ error: 'Access denied: Group does not belong to your organisation' }, { status: 403 }), origin);
+            }
         }
 
         // Delete all collections related to this group
@@ -142,6 +133,13 @@ export async function PUT(
         const group = await ChitGroup.findById(id);
         if (!group) {
             return withCors(NextResponse.json({ error: 'Group not found' }, { status: 404 }), origin);
+        }
+
+        // Org scope check: ORG_ADMIN can only update their own org's groups
+        if (user.role === 'ORG_ADMIN' && user.organisationId) {
+            if (group.organisationId.toString() !== user.organisationId.toString()) {
+                return withCors(NextResponse.json({ error: 'Access denied: Group does not belong to your organisation' }, { status: 403 }), origin);
+            }
         }
 
         // Update allowed fields

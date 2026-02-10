@@ -6,6 +6,7 @@ import GroupMember from '@/models/GroupMember';
 import Collection from '@/models/Collection';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { calculateOverdueAmount } from '@/lib/utils';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -54,7 +55,19 @@ export async function GET(request: NextRequest) {
         ]);
         const totalCollections = totalCollectionsResult[0]?.total || 0;
 
-        // Pending Dues
+        // Pending Dues — calculate dynamically as overdue (not lifetime pending)
+        const activeSubscriptions = await GroupMember.find(groupMemberMatch)
+            .populate('groupId', 'groupName frequency contributionAmount startDate totalPeriods');
+        
+        let totalOverdueDues = 0;
+        for (const sub of activeSubscriptions) {
+            const group = sub.groupId as any;
+            if (group) {
+                totalOverdueDues += calculateOverdueAmount(group, sub);
+            }
+        }
+
+        // Also get lifetime pending for reference
         const pendingDuesResult = await GroupMember.aggregate([
             { $match: groupMemberMatch },
             { $group: { _id: null, total: { $sum: "$pendingAmount" } } }
@@ -79,7 +92,8 @@ export async function GET(request: NextRequest) {
                 activeGroups: activeGroupsCount,
                 totalCollections,
                 activeMembers: activeMembersCount,
-                pendingDues: totalPendingDues
+                pendingDues: totalOverdueDues,
+                totalOutstanding: totalPendingDues
             },
             recentCollections,
             pendingDuesList

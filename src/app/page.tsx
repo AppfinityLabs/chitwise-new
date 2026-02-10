@@ -103,13 +103,13 @@ export default function Home() {
                                 <p className="text-zinc-500 text-center py-6 text-sm">No pending dues!</p>
                             ) : (
                                 data?.pendingDuesList?.map((item: any) => (
-                                    <div key={item._id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                                    <Link key={item._id} href={`/members/${item.memberId?._id}`} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
                                         <div className="flex items-center gap-3">
                                             <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                                             <span className="text-zinc-300 text-sm">{item.memberId?.name}</span>
                                         </div>
                                         <span className="text-rose-400 font-medium text-sm">₹ {item.pendingAmount}</span>
-                                    </div>
+                                    </Link>
                                 )))}
                         </div>
                     </div>

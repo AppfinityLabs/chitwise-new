@@ -1,7 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IPushSubscription extends Document {
-    userId: mongoose.Types.ObjectId;
+    userId?: mongoose.Types.ObjectId;
+    memberId?: mongoose.Types.ObjectId;
     organisationId?: mongoose.Types.ObjectId;
     subscription: {
         endpoint: string;
@@ -19,7 +20,11 @@ const PushSubscriptionSchema = new Schema<IPushSubscription>({
     userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
+        index: true
+    },
+    memberId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Member',
         index: true
     },
     organisationId: {
@@ -39,8 +44,9 @@ const PushSubscriptionSchema = new Schema<IPushSubscription>({
     lastUsed: Date
 });
 
-// Compound index for efficient lookups (field-level indexes already set via index: true)
+// Compound indexes for efficient lookups
 PushSubscriptionSchema.index({ userId: 1, 'subscription.endpoint': 1 });
+PushSubscriptionSchema.index({ memberId: 1, 'subscription.endpoint': 1 });
 
 export default mongoose.models.PushSubscription ||
     mongoose.model<IPushSubscription>('PushSubscription', PushSubscriptionSchema);

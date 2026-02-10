@@ -142,6 +142,35 @@ export async function POST(request: NextRequest) {
 
 // Helper function to send notifications to targets
 export async function sendNotificationToTargets(notification: any): Promise<{ sent: number; failed: number }> {
+    // For MEMBER and GROUP target types, use dedicated push service functions
+    if (notification.targetType === 'MEMBER' && notification.targetId) {
+        const { sendToMember } = await import('@/lib/pushService');
+        const payload: PushPayload = {
+            title: notification.title,
+            body: notification.body,
+            url: notification.url || '/',
+            image: notification.image || undefined,
+            priority: notification.priority || 'normal',
+            tag: `notification-${notification._id}`
+        };
+        const result = await sendToMember(notification.targetId.toString(), payload);
+        return result;
+    }
+
+    if (notification.targetType === 'GROUP' && notification.targetId) {
+        const { sendToGroup } = await import('@/lib/pushService');
+        const payload: PushPayload = {
+            title: notification.title,
+            body: notification.body,
+            url: notification.url || '/',
+            image: notification.image || undefined,
+            priority: notification.priority || 'normal',
+            tag: `notification-${notification._id}`
+        };
+        const result = await sendToGroup(notification.targetId.toString(), payload);
+        return result;
+    }
+
     let query: any = {};
 
     if (notification.targetType === 'ORGANISATION' && notification.targetId) {

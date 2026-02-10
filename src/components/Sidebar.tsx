@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Layers, CreditCard, Settings, PieChart, Building2, LogOut, UserCog, Bell } from 'lucide-react';
+import { Home, Users, Layers, CreditCard, Settings, PieChart, Building2, LogOut, UserCog, Bell, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
@@ -12,6 +12,7 @@ const menuItems = [
     { icon: Layers, label: 'Chit Groups', href: '/groups' },
     { icon: Users, label: 'Members', href: '/members' },
     { icon: CreditCard, label: 'Collections', href: '/collections' },
+    { icon: Trophy, label: 'Winners', href: '/winners' },
     { icon: Building2, label: 'Organisations', href: '/organisations' },
     { icon: Bell, label: 'Notifications', href: '/notifications' },
     { icon: PieChart, label: 'Reports', href: '/reports' },
@@ -52,7 +53,7 @@ export default function Sidebar() {
                     if (!user) return false;
                     if (user.role === 'SUPER_ADMIN') return true;
                     if (user.role === 'ORG_ADMIN') {
-                        return ['/', '/groups', '/members', '/collections', '/reports'].includes(item.href);
+                        return ['/', '/groups', '/members', '/collections', '/winners', '/reports'].includes(item.href);
                     }
                     return false;
                 }).map((item) => {

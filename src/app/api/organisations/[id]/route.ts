@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Organisation from '@/models/Organisation';
+import ChitGroup from '@/models/ChitGroup';
+import Member from '@/models/Member';
+import User from '@/models/User';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 
@@ -110,6 +113,23 @@ export async function DELETE(
         const organisation = await Organisation.findById(id);
         if (!organisation) {
             return withCors(NextResponse.json({ error: 'Organisation not found' }, { status: 404 }), origin);
+        }
+
+        // Check for linked data before allowing deletion
+        const linkedGroups = await ChitGroup.countDocuments({ organisationId: id });
+        const linkedMembers = await Member.countDocuments({ organisationId: id });
+        const linkedUsers = await User.countDocuments({ organisationId: id });
+
+        if (linkedGroups > 0 || linkedMembers > 0 || linkedUsers > 0) {
+            return withCors(NextResponse.json({
+                error: 'Cannot delete organisation with linked data',
+                details: {
+                    groups: linkedGroups,
+                    members: linkedMembers,
+                    users: linkedUsers,
+                    message: 'Please delete or reassign all linked groups, members, and users first.'
+                }
+            }, { status: 409 }), origin);
         }
 
         // Delete the organisation

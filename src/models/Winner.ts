@@ -30,4 +30,7 @@ const WinnerSchema = new Schema<IWinner>({
     remarks: { type: String },
 }, { timestamps: true });
 
+// Prevent duplicate winners for the same group and period
+WinnerSchema.index({ groupId: 1, basePeriodNumber: 1 }, { unique: true });
+
 export default mongoose.models.Winner || mongoose.model<IWinner>('Winner', WinnerSchema);

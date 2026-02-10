@@ -1,5 +1,6 @@
 import webpush from 'web-push';
 import PushSubscription from '@/models/PushSubscription';
+import GroupMember from '@/models/GroupMember';
 import dbConnect from './db';
 
 // Configure VAPID
@@ -130,4 +131,78 @@ export function getVapidPublicKey(): string {
  */
 export function isPushConfigured(): boolean {
     return Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
+}
+
+/**
+ * Send push notification to a specific member's devices
+ */
+export async function sendToMember(
+    memberId: string,
+    payload: PushPayload
+): Promise<{ sent: number; failed: number }> {
+    await dbConnect();
+
+    const subscriptions = await PushSubscription.find({ memberId });
+    let sent = 0;
+    let failed = 0;
+
+    for (const sub of subscriptions) {
+        const success = await sendToSubscription(sub.subscription, payload);
+        if (success) {
+            sent++;
+            sub.lastUsed = new Date();
+            await sub.save();
+        } else {
+            failed++;
+        }
+    }
+
+    return { sent, failed };
+}
+
+/**
+ * Send push notification to all members enrolled in a group
+ */
+export async function sendToGroup(
+    groupId: string,
+    payload: PushPayload
+): Promise<{ sent: number; failed: number }> {
+    await dbConnect();
+
+    // Find all active subscriptions for this group
+    const groupMembers = await GroupMember.find({ groupId, status: 'ACTIVE' }).select('memberId');
+    const memberIds = groupMembers.map((gm: any) => gm.memberId);
+
+    if (memberIds.length === 0) return { sent: 0, failed: 0 };
+
+    const subscriptions = await PushSubscription.find({ memberId: { $in: memberIds } });
+    let sent = 0;
+    let failed = 0;
+
+    for (const sub of subscriptions) {
+        const success = await sendToSubscription(sub.subscription, payload);
+        if (success) {
+            sent++;
+            sub.lastUsed = new Date();
+            await sub.save();
+        } else {
+            failed++;
+        }
+    }
+
+    return { sent, failed };
+}
+
+/**
+ * Interpolate template variables in notification text.
+ * Replaces {{variableName}} with provided values.
+ * Example: interpolateTemplate("Hello {{memberName}}, you owe {{amount}}", { memberName: "John", amount: "₹5000" })
+ */
+export function interpolateTemplate(
+    template: string,
+    variables: Record<string, string | number>
+): string {
+    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+        return variables[key] !== undefined ? String(variables[key]) : match;
+    });
 }

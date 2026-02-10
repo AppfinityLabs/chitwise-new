@@ -2,11 +2,14 @@
 
 import { use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Phone } from 'lucide-react';
-import { useMember, useSubscriptions, useCollections } from '@/lib/swr';
+import { ArrowLeft, Phone, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useMember, useSubscriptions, useCollections, invalidateAfterMemberCreate } from '@/lib/swr';
+import { membersApi } from '@/lib/api';
 
 export default function MemberHistoryPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
+    const router = useRouter();
     const { data: member, isLoading } = useMember(id);
     const { data: subscriptions } = useSubscriptions({ memberId: id });
     const { data: collections } = useCollections({ memberId: id });
@@ -63,7 +66,31 @@ export default function MemberHistoryPage({ params }: { params: Promise<{ id: st
                         <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20">{member.status}</span>
                     </div>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-3 items-center">
+                    <Link
+                        href={`/members/${id}/edit`}
+                        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-sm font-medium flex items-center gap-2 border border-white/10 transition-colors"
+                    >
+                        <Pencil size={14} />
+                        Edit
+                    </Link>
+                    <button
+                        onClick={async () => {
+                            if (!confirm('Are you sure you want to deactivate this member?')) return;
+                            try {
+                                await membersApi.delete(id);
+                                await invalidateAfterMemberCreate();
+                                router.push('/members');
+                            } catch (err: any) {
+                                alert(err.message || 'Failed to delete');
+                            }
+                        }}
+                        className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl text-sm font-medium flex items-center gap-2 border border-rose-500/20 transition-colors"
+                    >
+                        <Trash2 size={14} />
+                        Deactivate
+                    </button>
+                    <div className="border-l border-white/10 pl-3 flex gap-4">
                     <div className="text-right">
                         <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">Total Paid</p>
                         <p className="text-xl font-bold text-emerald-400">₹ {totalPaid.toLocaleString()}</p>
@@ -72,6 +99,7 @@ export default function MemberHistoryPage({ params }: { params: Promise<{ id: st
                         <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">Total Due</p>
                         <p className="text-xl font-bold text-rose-400">₹ {totalPending.toLocaleString()}</p>
                     </div>
+                </div>
                 </div>
             </div>
 
