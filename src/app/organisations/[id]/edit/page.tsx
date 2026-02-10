@@ -91,7 +91,7 @@ export default function EditOrganisationPage({ params }: { params: Promise<{ id:
 
     return (
         <div className="max-w-2xl mx-auto">
-            <Link href="/organisations" className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors">
+            <Link href="/organisations" className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors">
                 <ArrowLeft size={16} />
                 <span>Back to Organisations</span>
             </Link>
@@ -101,71 +101,71 @@ export default function EditOrganisationPage({ params }: { params: Promise<{ id:
             <form onSubmit={handleSubmit} className="glass-card p-8 space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300">Organisation Name *</label>
+                        <label className="text-sm font-medium text-zinc-300">Organisation Name *</label>
                         <input
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             placeholder="e.g. ABC Finance Ltd"
                             required
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300">Organisation Code *</label>
+                        <label className="text-sm font-medium text-zinc-300">Organisation Code *</label>
                         <input
                             name="code"
                             value={formData.code}
                             onChange={handleChange}
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             placeholder="e.g. ABC"
                             required
                         />
-                        <p className="text-xs text-slate-500">Short code (2-5 characters)</p>
+                        <p className="text-xs text-zinc-500">Short code (2-5 characters)</p>
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-300">Description</label>
+                    <label className="text-sm font-medium text-zinc-300">Description</label>
                     <textarea
                         name="description"
                         value={formData.description}
                         onChange={handleChange}
-                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none resize-none h-24"
+                        className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none resize-none h-24"
                         placeholder="Brief description of your organisation..."
                     />
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-300">Address</label>
+                    <label className="text-sm font-medium text-zinc-300">Address</label>
                     <textarea
                         name="address"
                         value={formData.address}
                         onChange={handleChange}
-                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none resize-none h-24"
+                        className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none resize-none h-24"
                         placeholder="Business address..."
                     />
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300">Phone Number</label>
+                        <label className="text-sm font-medium text-zinc-300">Phone Number</label>
                         <input
                             name="phone"
                             value={formData.phone}
                             onChange={handleChange}
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             placeholder="e.g. +91 9876543210"
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300">Email Address</label>
+                        <label className="text-sm font-medium text-zinc-300">Email Address</label>
                         <input
                             type="email"
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             placeholder="contact@company.com"
                         />
                     </div>
@@ -173,34 +173,34 @@ export default function EditOrganisationPage({ params }: { params: Promise<{ id:
 
                 <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300">GST Number</label>
+                        <label className="text-sm font-medium text-zinc-300">GST Number</label>
                         <input
                             name="gstNumber"
                             value={formData.gstNumber}
                             onChange={handleChange}
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             placeholder="e.g. 29ABCDE1234F1Z5"
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300">PAN Number</label>
+                        <label className="text-sm font-medium text-zinc-300">PAN Number</label>
                         <input
                             name="panNumber"
                             value={formData.panNumber}
                             onChange={handleChange}
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             placeholder="e.g. ABCDE1234F"
                         />
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-300">Status</label>
+                    <label className="text-sm font-medium text-zinc-300">Status</label>
                     <select
                         name="status"
                         value={formData.status}
                         onChange={handleChange}
-                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                        className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                     >
                         <option value="ACTIVE">Active</option>
                         <option value="INACTIVE">Inactive</option>
@@ -211,7 +211,7 @@ export default function EditOrganisationPage({ params }: { params: Promise<{ id:
                     <button
                         type="button"
                         onClick={() => router.back()}
-                        className="px-6 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                        className="px-6 py-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
                     >
                         Cancel
                     </button>

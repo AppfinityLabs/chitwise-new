@@ -61,26 +61,26 @@ export default function AddGroupMemberPage({ params }: { params: Promise<{ id: s
         }
     };
 
-    if (!group) return <div className="p-8 text-center text-slate-400">Loading...</div>;
+    if (!group) return <div className="p-8 text-center text-zinc-400">Loading...</div>;
 
     return (
         <div className="max-w-2xl mx-auto">
-            <Link href={`/groups/${id}`} className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors">
+            <Link href={`/groups/${id}`} className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors">
                 <ArrowLeft size={16} />
                 <span>Back to Group</span>
             </Link>
 
             <h1 className="text-3xl font-bold text-white mb-2">Add Member to Group</h1>
-            <p className="text-slate-400 mb-8">Assign a member to <span className="text-white font-medium">{group.groupName}</span></p>
+            <p className="text-zinc-400 mb-8">Assign a member to <span className="text-white font-medium">{group.groupName}</span></p>
 
             <form onSubmit={handleSubmit} className="glass-card p-8 space-y-6">
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-300">Select Member</label>
+                    <label className="text-sm font-medium text-zinc-300">Select Member</label>
                     <select
                         value={formData.memberId}
                         onChange={e => setFormData({ ...formData, memberId: e.target.value })}
-                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                        className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                         required
                     >
                         <option value="">-- Choose Member --</option>
@@ -88,35 +88,35 @@ export default function AddGroupMemberPage({ params }: { params: Promise<{ id: s
                             <option key={m._id} value={m._id}>{m.name} ({m.phone})</option>
                         ))}
                     </select>
-                    <p className="text-xs text-slate-500">Only showing active members.</p>
+                    <p className="text-xs text-zinc-500">Only showing active members.</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300">Number of Units</label>
+                        <label className="text-sm font-medium text-zinc-300">Number of Units</label>
                         <input
                             type="number"
                             step="0.1"
                             min="0.1"
                             value={formData.units}
                             onChange={e => setFormData({ ...formData, units: parseFloat(e.target.value) })}
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             required
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300">Collection Pattern</label>
+                        <label className="text-sm font-medium text-zinc-300">Collection Pattern</label>
                         <select
                             value={formData.collectionPattern}
                             onChange={e => setFormData({ ...formData, collectionPattern: e.target.value })}
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             required
                         >
                             <option value="DAILY">Daily</option>
                             <option value="WEEKLY">Weekly</option>
                             <option value="MONTHLY">Monthly</option>
                         </select>
-                        <p className="text-xs text-slate-500">How often will they pay?</p>
+                        <p className="text-xs text-zinc-500">How often will they pay?</p>
                     </div>
                 </div>
 
@@ -124,7 +124,7 @@ export default function AddGroupMemberPage({ params }: { params: Promise<{ id: s
                     <button
                         type="button"
                         onClick={() => router.back()}
-                        className="px-6 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                        className="px-6 py-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
                     >
                         Cancel
                     </button>

@@ -1,32 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Loader2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useCollections } from '@/lib/swr';
 
 export default function CollectionsPage() {
     const { user } = useAuth();
-    const [collections, setCollections] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: collections, isLoading } = useCollections();
 
-    useEffect(() => {
-        fetch('/api/collections')
-            .then((res) => res.json())
-            .then((data) => {
-                if (Array.isArray(data)) {
-                    setCollections(data);
-                } else {
-                    setCollections([]);
-                }
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error(err);
-                setCollections([]);
-                setLoading(false);
-            });
-    }, []);
+    const list = Array.isArray(collections) ? collections : [];
 
     return (
         <div>
@@ -39,8 +22,8 @@ export default function CollectionsPage() {
             </div>
 
             <div className="glass-card overflow-x-auto">
-                <table className="w-full text-left text-sm text-slate-400">
-                    <thead className="bg-slate-900/50 text-slate-200 font-medium border-b border-white/5">
+                <table className="w-full text-left text-sm text-zinc-400">
+                    <thead className="bg-zinc-900/50 text-zinc-200 font-medium border-b border-white/5">
                         <tr>
                             <th className="p-4">Date</th>
                             <th className="p-4">Member</th>
@@ -53,16 +36,27 @@ export default function CollectionsPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {loading ? (
-                            <tr><td colSpan={7} className="p-8 text-center"><Loader2 className="animate-spin inline text-indigo-500" /></td></tr>
-                        ) : collections.map((col) => (
+                        {isLoading ? (
+                            [...Array(5)].map((_, i) => (
+                                <tr key={i} className="border-b border-white/5">
+                                    <td className="p-4"><div className="skeleton h-4 w-20 rounded" /></td>
+                                    <td className="p-4"><div className="skeleton h-4 w-24 rounded" /></td>
+                                    <td className="p-4"><div className="skeleton h-4 w-28 rounded" /></td>
+                                    {user?.role === 'SUPER_ADMIN' && <td className="p-4"><div className="skeleton h-4 w-12 rounded" /></td>}
+                                    <td className="p-4"><div className="skeleton h-4 w-8 rounded" /></td>
+                                    <td className="p-4"><div className="skeleton h-4 w-16 rounded ml-auto" /></td>
+                                    <td className="p-4"><div className="skeleton h-4 w-12 rounded" /></td>
+                                    <td className="p-4"><div className="skeleton h-5 w-14 rounded-full" /></td>
+                                </tr>
+                            ))
+                        ) : list.map((col: any) => (
                             <tr key={col._id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                                 <td className="p-4">{new Date(col.periodDate).toLocaleDateString()}</td>
                                 <td className="p-4 font-medium text-white">{col.memberId?.name}</td>
                                 <td className="p-4">{col.groupId?.groupName || '...'}</td>
                                 {user?.role === 'SUPER_ADMIN' && (
                                     <td className="p-4">
-                                        <span className="text-xs font-medium text-slate-400 bg-slate-800 px-2 py-1 rounded-md border border-white/10">
+                                        <span className="text-xs font-medium text-zinc-400 bg-zinc-800 px-2 py-1 rounded-md border border-white/10">
                                             {col.groupId?.organisationId?.code || '-'}
                                         </span>
                                     </td>

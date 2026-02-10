@@ -39,15 +39,15 @@ export default function Sidebar() {
     };
 
     return (
-        <aside className="w-64 h-screen sticky top-0 bg-slate-900/50 backdrop-blur-xl border-r border-white/5 flex flex-col p-6">
+        <aside className="w-64 h-screen sticky top-0 bg-zinc-950 border-r border-white/5 flex flex-col p-6">
             <div className="mb-10">
-                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
+                <h1 className="text-2xl font-bold gradient-text">
                     ChitWise
                 </h1>
-                <p className="text-xs text-slate-500 mt-1">Fund Management System</p>
+                <p className="text-xs text-zinc-500 mt-1">Fund Management System</p>
             </div>
 
-            <nav className="space-y-2 flex-1">
+            <nav className="space-y-1 flex-1">
                 {menuItems.filter(item => {
                     if (!user) return false;
                     if (user.role === 'SUPER_ADMIN') return true;
@@ -61,21 +61,21 @@ export default function Sidebar() {
                         <Link key={item.href} href={item.href}>
                             <div
                                 className={cn(
-                                    'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative',
+                                    'flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group relative',
                                     isActive
-                                        ? 'bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 border border-indigo-500/30 text-white'
-                                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                        ? 'text-white'
+                                        : 'text-zinc-400 hover:text-white hover:bg-white/5'
                                 )}
                             >
                                 {isActive && (
                                     <motion.div
                                         layoutId="activeTab"
-                                        className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-cyan-500/10 rounded-xl"
-                                        transition={{ type: 'spring', duration: 0.6 }}
+                                        className="absolute inset-0 bg-white/[0.06] rounded-xl border border-white/[0.08]"
+                                        transition={{ type: 'spring', duration: 0.5 }}
                                     />
                                 )}
-                                <item.icon className="w-5 h-5 relative z-10" />
-                                <span className="relative z-10 font-medium">{item.label}</span>
+                                <item.icon className={cn("w-[18px] h-[18px] relative z-10", isActive && "text-indigo-400")} />
+                                <span className="relative z-10 text-sm font-medium">{item.label}</span>
                             </div>
                         </Link>
                     );
@@ -85,14 +85,14 @@ export default function Sidebar() {
             <div className="mt-auto pt-6 border-t border-white/5">
                 <div className="space-y-3">
                     <div className="flex items-center gap-3 px-2">
-                        <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs font-bold">
+                        <div className="w-8 h-8 rounded-full bg-indigo-500/15 flex items-center justify-center text-indigo-400 text-xs font-bold">
                             {user ? getUserInitials(user.name) : 'U'}
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm text-white font-medium truncate">
                                 {user?.name || 'User'}
                             </p>
-                            <p className="text-xs text-slate-500 truncate capitalize">
+                            <p className="text-xs text-zinc-500 truncate capitalize">
                                 {user?.role.replace('_', ' ').toLowerCase() || 'Role'}
                             </p>
                         </div>
@@ -100,7 +100,7 @@ export default function Sidebar() {
 
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-200 group"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-200"
                     >
                         <LogOut className="w-4 h-4" />
                         <span className="text-sm font-medium">Logout</span>

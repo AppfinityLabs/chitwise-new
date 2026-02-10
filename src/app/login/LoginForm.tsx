@@ -69,16 +69,16 @@ export default function LoginForm() {
     // Show loading while checking authentication
     if (checking) {
         return (
-            <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
+            <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-zinc-900 via-indigo-950 to-zinc-900">
                 <Loader2 className="w-12 h-12 animate-spin text-indigo-500" />
             </div>
         );
     }
 
     return (
-        <div className="flex min-h-screen w-full bg-slate-950">
+        <div className="flex min-h-screen w-full bg-zinc-950">
             {/* Left Side - Form Section */}
-            <div className="w-full lg:w-1/2 flex flex-col justify-center px-4 sm:px-12 lg:px-24 xl:px-32 bg-slate-950 relative z-10">
+            <div className="w-full lg:w-1/2 flex flex-col justify-center px-4 sm:px-12 lg:px-24 xl:px-32 bg-zinc-950 relative z-10">
                 <div className="w-full max-w-md mx-auto">
                     {/* Mobile Logo (Visible only on small screens) */}
                     <div className="lg:hidden mb-8 text-center">
@@ -92,7 +92,7 @@ export default function LoginForm() {
                         <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 tracking-tight">
                             Welcome Back
                         </h2>
-                        <p className="text-slate-400">
+                        <p className="text-zinc-400">
                             Please sign in to access your dashboard.
                         </p>
                     </div>
@@ -107,12 +107,12 @@ export default function LoginForm() {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Email Field */}
                         <div className="space-y-2">
-                            <label htmlFor="email" className="block text-sm font-medium text-slate-300 ml-1">
+                            <label htmlFor="email" className="block text-sm font-medium text-zinc-300 ml-1">
                                 Email Address
                             </label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-400">
-                                    <Mail size={20} className="text-slate-500 transition-colors group-focus-within:text-indigo-400" />
+                                    <Mail size={20} className="text-zinc-500 transition-colors group-focus-within:text-indigo-400" />
                                 </div>
                                 <input
                                     id="email"
@@ -120,7 +120,7 @@ export default function LoginForm() {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
-                                    className="w-full pl-11 pr-4 py-3.5 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-300 hover:border-slate-600/50"
+                                    className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/50 border border-zinc-700/50 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-300 hover:border-zinc-600/50"
                                     placeholder="Enter your email"
                                     disabled={loading}
                                 />
@@ -130,7 +130,7 @@ export default function LoginForm() {
                         {/* Password Field */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between ml-1">
-                                <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+                                <label htmlFor="password" className="block text-sm font-medium text-zinc-300">
                                     Password
                                 </label>
                                 <a href="#" className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
@@ -139,7 +139,7 @@ export default function LoginForm() {
                             </div>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Lock size={20} className="text-slate-500 transition-colors group-focus-within:text-indigo-400" />
+                                    <Lock size={20} className="text-zinc-500 transition-colors group-focus-within:text-indigo-400" />
                                 </div>
                                 <input
                                     id="password"
@@ -147,7 +147,7 @@ export default function LoginForm() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
-                                    className="w-full pl-11 pr-4 py-3.5 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-300 hover:border-slate-600/50"
+                                    className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/50 border border-zinc-700/50 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-300 hover:border-zinc-600/50"
                                     placeholder="Enter your password"
                                     disabled={loading}
                                 />
@@ -183,22 +183,22 @@ export default function LoginForm() {
                     </form>
 
                     {/* Footer / Demo Creds */}
-                    <div className="mt-10 border-t border-slate-800/50 pt-6">
+                    <div className="mt-10 border-t border-zinc-800/50 pt-6">
                         <div className="bg-indigo-500/5 rounded-xl p-4 border border-indigo-500/10 mb-6">
                             <h4 className="text-xs font-semibold text-indigo-300 uppercase tracking-wider mb-2">Demo Access</h4>
                             <div className="flex items-center justify-between text-sm">
                                 <div>
-                                    <span className="text-slate-500">Email:</span>
-                                    <code className="ml-2 text-slate-300 font-mono bg-slate-900 px-1 py-0.5 rounded">admin@gmail.com</code>
+                                    <span className="text-zinc-500">Email:</span>
+                                    <code className="ml-2 text-zinc-300 font-mono bg-zinc-900 px-1 py-0.5 rounded">admin@gmail.com</code>
                                 </div>
                                 <div>
-                                    <span className="text-slate-500">Pass:</span>
-                                    <code className="ml-2 text-slate-300 font-mono bg-slate-900 px-1 py-0.5 rounded">Admin@123</code>
+                                    <span className="text-zinc-500">Pass:</span>
+                                    <code className="ml-2 text-zinc-300 font-mono bg-zinc-900 px-1 py-0.5 rounded">Admin@123</code>
                                 </div>
                             </div>
                         </div>
 
-                        <p className="text-center text-slate-500 text-sm">
+                        <p className="text-center text-zinc-500 text-sm">
                             © 2026 ChitWise. All rights reserved.
                         </p>
                     </div>
@@ -206,11 +206,11 @@ export default function LoginForm() {
             </div>
 
             {/* Right Side - Branding Section (Hidden on Mobile) */}
-            <div className="hidden lg:flex w-1/2 relative bg-slate-900 items-center justify-center overflow-hidden">
+            <div className="hidden lg:flex w-1/2 relative bg-zinc-900 items-center justify-center overflow-hidden">
                 {/* Background Image/Gradient */}
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-violet-900 z-0">
                     <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1633158829585-23ba8f7c8caf?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay opacity-20"></div>
-                    <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-[1px]"></div>
+                    <div className="absolute inset-0 bg-zinc-900/20 backdrop-blur-[1px]"></div>
                 </div>
 
                 {/* Content */}

@@ -24,26 +24,26 @@ export default function SettingsPage() {
         <div className="max-w-2xl">
             <h1 className="text-3xl font-bold text-white mb-8">Settings</h1>
 
-            <div className="glass-card p-0 overflow-hidden text-slate-300">
+            <div className="glass-card p-0 overflow-hidden text-zinc-300">
                 <div className="p-6 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer flex gap-4">
                     <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400"><Shield size={24} /></div>
                     <div>
                         <h3 className="font-bold text-white">Security</h3>
-                        <p className="text-sm text-slate-500">Manage password and access controls</p>
+                        <p className="text-sm text-zinc-500">Manage password and access controls</p>
                     </div>
                 </div>
                 <div className="p-6 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer flex gap-4">
                     <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400"><Bell size={24} /></div>
                     <div>
                         <h3 className="font-bold text-white">Notifications</h3>
-                        <p className="text-sm text-slate-500">Configure email and SMS alerts</p>
+                        <p className="text-sm text-zinc-500">Configure email and SMS alerts</p>
                     </div>
                 </div>
                 <div className="p-6 hover:bg-white/5 transition-colors cursor-pointer flex gap-4">
                     <div className="p-3 bg-violet-500/10 rounded-xl text-violet-400"><Settings size={24} /></div>
                     <div>
                         <h3 className="font-bold text-white">System Preferences</h3>
-                        <p className="text-sm text-slate-500">Date formats, currency, and language</p>
+                        <p className="text-sm text-zinc-500">Date formats, currency, and language</p>
                     </div>
                 </div>
             </div>

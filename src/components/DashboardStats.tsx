@@ -3,25 +3,23 @@
 import { motion } from 'framer-motion';
 import { TrendingUp, Users, DollarSign, Activity, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
 
-// Skeleton Component
 function StatCardSkeleton() {
     return (
-        <div className="glass-card p-6 relative overflow-hidden animate-pulse">
+        <div className="glass-card p-5 relative overflow-hidden">
             <div className="flex justify-between items-start mb-4">
-                <div className="w-10 h-10 rounded-xl bg-slate-800" />
-                <div className="w-16 h-6 rounded-full bg-slate-800" />
+                <div className="w-10 h-10 rounded-xl skeleton" />
+                <div className="w-14 h-5 rounded-full skeleton" />
             </div>
-            <div className="h-4 w-24 bg-slate-800 mb-2 rounded" />
-            <div className="h-8 w-32 bg-slate-800 rounded" />
+            <div className="h-3 w-20 skeleton mb-2.5" />
+            <div className="h-7 w-28 skeleton" />
         </div>
     );
 }
 
 export default function DashboardStats({ data }: { data: any }) {
     if (!data) return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {[1, 2, 3, 4].map((i) => <StatCardSkeleton key={i} />)}
         </div>
     );
@@ -35,60 +33,62 @@ export default function DashboardStats({ data }: { data: any }) {
 
     const stats = [
         {
-            label: 'Total Active Groups',
+            label: 'Active Groups',
             value: activeGroups,
-            change: 'Running Now',
+            change: 'Running',
             icon: Layers,
-            color: 'from-blue-500 to-cyan-500',
+            color: 'text-blue-400',
+            bg: 'bg-blue-500/10',
         },
         {
             label: 'Total Collections',
             value: `₹ ${totalCollections.toLocaleString()}`,
             change: 'Lifetime',
             icon: DollarSign,
-            color: 'from-emerald-500 to-green-500',
+            color: 'text-emerald-400',
+            bg: 'bg-emerald-500/10',
         },
         {
             label: 'Active Members',
             value: activeMembers,
             change: 'In Directory',
             icon: Users,
-            color: 'from-violet-500 to-purple-500',
+            color: 'text-violet-400',
+            bg: 'bg-violet-500/10',
         },
         {
             label: 'Pending Dues',
             value: `₹ ${pendingDues.toLocaleString()}`,
             change: 'To Collect',
             icon: Activity,
-            color: 'from-rose-500 to-red-500',
+            color: 'text-rose-400',
+            bg: 'bg-rose-500/10',
+            isWarning: true,
         },
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {stats.map((stat, index) => (
                 <motion.div
                     key={stat.label}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="glass-card p-6 relative overflow-hidden group hover:shadow-2xl transition-all duration-300"
+                    transition={{ delay: index * 0.08 }}
+                    className="glass-card p-5 relative overflow-hidden group"
                 >
-                    <div className={cn("absolute top-0 right-0 w-32 h-32 bg-gradient-to-br opacity-10 rounded-full blur-2xl -mr-10 -mt-10 transition-opacity group-hover:opacity-20", stat.color)} />
-
-                    <div className="flex justify-between items-start mb-4">
-                        <div className={cn("p-3 rounded-xl bg-gradient-to-br opacity-80 text-white shadow-lg", stat.color)}>
-                            <stat.icon size={24} />
+                    <div className="flex justify-between items-start mb-3">
+                        <div className={cn("p-2.5 rounded-xl", stat.bg, stat.color)}>
+                            <stat.icon size={20} />
                         </div>
-                        {stat.label.includes('Pending') ? (
-                            <span className="text-xs font-bold text-rose-400 bg-rose-500/10 px-2 py-1 rounded-full">{stat.change}</span>
-                        ) : (
-                            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full">{stat.change}</span>
-                        )}
+                        <span className={cn(
+                            "text-[10px] font-semibold px-2 py-0.5 rounded-full",
+                            stat.isWarning ? "text-rose-400 bg-rose-500/10" : "text-emerald-400 bg-emerald-500/10"
+                        )}>{stat.change}</span>
                     </div>
 
-                    <h3 className="text-slate-400 text-sm font-medium mb-1">{stat.label}</h3>
-                    <p className="text-3xl font-bold text-white tracking-tight">{stat.value}</p>
+                    <p className="text-zinc-500 text-xs font-medium mb-0.5">{stat.label}</p>
+                    <p className="text-2xl font-bold text-white tracking-tight">{stat.value}</p>
                 </motion.div>
             ))}
         </div>

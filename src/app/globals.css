@@ -6,22 +6,22 @@
   --color-ring: hsl(var(--ring));
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
-  
+
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
-  
+
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
-  
+
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
-  
+
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
-  
+
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
-  
+
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
 
@@ -31,40 +31,41 @@
 }
 
 :root {
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
+  --background: 240 6% 4%;
+  --foreground: 0 0% 95%;
 
-  --card: 217 33% 17%;
-  --card-foreground: 210 40% 98%;
+  --card: 240 5.9% 10%;
+  --card-foreground: 0 0% 95%;
 
-  --popover: 222 47% 11%;
-  --popover-foreground: 210 40% 98%;
+  --popover: 240 6% 4%;
+  --popover-foreground: 0 0% 95%;
 
-  --primary: 252 87% 65%;
-  --primary-foreground: 210 40% 98%;
+  --primary: 239 84% 67%;
+  --primary-foreground: 0 0% 98%;
 
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
 
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
 
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
 
   --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive-foreground: 0 0% 98%;
 
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 252 87% 65%;
-  
-  --radius: 0.5rem;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 239 84% 67%;
+
+  --radius: 0.75rem;
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     background-color: var(--color-background);
@@ -72,19 +73,79 @@
   }
 }
 
-/* Custom Component Classes */
+/* Glass Card: zinc-900 minimal style */
 .glass-card {
-  @apply bg-slate-800/40 backdrop-blur-lg border border-white/10 shadow-xl rounded-2xl;
+  @apply bg-zinc-900/50 backdrop-blur-lg border border-white/5 shadow-xl rounded-2xl;
 }
 
+/* Gradient text accent */
 .gradient-text {
   @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400;
 }
 
+/* Auth input */
 .auth-input {
-  @apply bg-slate-900/50 border-white/10 focus:border-indigo-500 focus:ring-indigo-500/20 text-white placeholder:text-slate-500 rounded-xl transition-all duration-300;
+  @apply bg-zinc-900/50 border-white/10 focus:border-indigo-500 focus:ring-indigo-500/20 text-white placeholder:text-zinc-500 rounded-xl transition-all duration-300;
 }
 
+/* Primary gradient button */
 .primary-btn {
   @apply bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium rounded-xl shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98];
+}
+
+/* Skeleton loading pulse */
+.skeleton {
+  @apply animate-pulse bg-zinc-800/60 rounded-xl;
+}
+
+/* Sticky page header with blur */
+.page-header {
+  @apply sticky top-0 z-30 bg-zinc-950/80 backdrop-blur-xl border-b border-white/5 px-4 py-4;
+}
+
+/* Floating action button */
+.fab {
+  @apply fixed bottom-24 right-6 w-14 h-14 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 active:scale-95 transition-transform z-40 md:bottom-8;
+}
+
+/* Status badges */
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
+}
+
+.badge-success {
+  @apply bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+}
+
+.badge-warning {
+  @apply bg-amber-500/10 text-amber-400 border border-amber-500/20;
+}
+
+.badge-error {
+  @apply bg-rose-500/10 text-rose-400 border border-rose-500/20;
+}
+
+/* Empty state styling */
+.empty-state {
+  @apply flex flex-col items-center justify-center py-16 text-center text-zinc-500;
+}
+
+/* Safe area padding for mobile */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Smooth scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
 }

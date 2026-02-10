@@ -59,12 +59,12 @@ export default function NewUserPage() {
     return (
         <div className="max-w-2xl mx-auto">
             <div className="mb-8">
-                <Link href="/users" className="inline-flex items-center text-slate-400 hover:text-white mb-4 transition-colors">
+                <Link href="/users" className="inline-flex items-center text-zinc-400 hover:text-white mb-4 transition-colors">
                     <ArrowLeft size={16} className="mr-2" />
                     Back to Users
                 </Link>
                 <h1 className="text-3xl font-bold text-white">Create System User</h1>
-                <p className="text-slate-400 mt-1">Add a new administrator or staff member.</p>
+                <p className="text-zinc-400 mt-1">Add a new administrator or staff member.</p>
             </div>
 
             <div className="glass-card p-8">
@@ -78,17 +78,17 @@ export default function NewUserPage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Name */}
                     <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-300">Full Name</label>
+                        <label className="block text-sm font-medium text-zinc-300">Full Name</label>
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <User size={18} className="text-slate-500" />
+                                <User size={18} className="text-zinc-500" />
                             </div>
                             <input
                                 type="text"
                                 required
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                className="w-full pl-11 pr-4 py-3 bg-zinc-900/50 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                 placeholder="e.g. John Doe"
                             />
                         </div>
@@ -96,17 +96,17 @@ export default function NewUserPage() {
 
                     {/* Email */}
                     <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-300">Email Address</label>
+                        <label className="block text-sm font-medium text-zinc-300">Email Address</label>
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <Mail size={18} className="text-slate-500" />
+                                <Mail size={18} className="text-zinc-500" />
                             </div>
                             <input
                                 type="email"
                                 required
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                className="w-full pl-11 pr-4 py-3 bg-zinc-900/50 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                 placeholder="john@example.com"
                             />
                         </div>
@@ -114,10 +114,10 @@ export default function NewUserPage() {
 
                     {/* Password */}
                     <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-300">Password</label>
+                        <label className="block text-sm font-medium text-zinc-300">Password</label>
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <Lock size={18} className="text-slate-500" />
+                                <Lock size={18} className="text-zinc-500" />
                             </div>
                             <input
                                 type="password"
@@ -125,30 +125,30 @@ export default function NewUserPage() {
                                 minLength={6}
                                 value={formData.password}
                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                className="w-full pl-11 pr-4 py-3 bg-zinc-900/50 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                 placeholder="••••••••"
                             />
                         </div>
-                        <p className="text-xs text-slate-500 ml-1">Must be at least 6 characters long.</p>
+                        <p className="text-xs text-zinc-500 ml-1">Must be at least 6 characters long.</p>
                     </div>
 
                     {/* Role */}
                     <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-300">Role</label>
+                        <label className="block text-sm font-medium text-zinc-300">Role</label>
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <Shield size={18} className="text-slate-500" />
+                                <Shield size={18} className="text-zinc-500" />
                             </div>
                             <select
                                 value={formData.role}
                                 onChange={(e) => setFormData({ ...formData, role: e.target.value, organisationId: e.target.value === 'SUPER_ADMIN' ? '' : formData.organisationId })}
-                                className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer"
+                                className="w-full pl-11 pr-4 py-3 bg-zinc-900/50 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer"
                             >
                                 <option value="ORG_ADMIN">Organisation Admin</option>
                                 <option value="SUPER_ADMIN">Super Admin</option>
                             </select>
                             <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                                <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                             </div>
@@ -158,16 +158,16 @@ export default function NewUserPage() {
                     {/* Organisation (Visible for Org Admin) */}
                     {formData.role === 'ORG_ADMIN' && (
                         <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-300">Organisation</label>
+                            <label className="block text-sm font-medium text-zinc-300">Organisation</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Building2 size={18} className="text-slate-500" />
+                                    <Building2 size={18} className="text-zinc-500" />
                                 </div>
                                 <select
                                     required
                                     value={formData.organisationId}
                                     onChange={(e) => setFormData({ ...formData, organisationId: e.target.value })}
-                                    className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer"
+                                    className="w-full pl-11 pr-4 py-3 bg-zinc-900/50 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer"
                                 >
                                     <option value="">Select Organisation</option>
                                     {organisations.map(org => (
@@ -175,7 +175,7 @@ export default function NewUserPage() {
                                     ))}
                                 </select>
                                 <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                                    <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                     </svg>
                                 </div>

@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Save, Search } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
+import { useMembers } from '@/lib/swr';
+import { collectionsApi, subscriptionsApi } from '@/lib/api';
+import { invalidateAfterCollectionCreate } from '@/lib/swr';
 
 export default function NewCollectionPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [members, setMembers] = useState<any[]>([]);
+    const { data: members } = useMembers();
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
-
     const [error, setError] = useState('');
 
     const [selectedMember, setSelectedMember] = useState('');
@@ -23,24 +25,17 @@ export default function NewCollectionPage() {
         periodDate: new Date().toISOString().split('T')[0]
     });
 
-    // Fetch Members on load
-    useEffect(() => {
-        fetch('/api/members').then(res => res.json()).then(setMembers);
-    }, []);
+    const memberList = Array.isArray(members) ? members : [];
 
     // Fetch Subscriptions when Member Selected
     useEffect(() => {
         if (selectedMember) {
-            fetch(`/api/groupmembers?memberId=${selectedMember}`)
-                .then(res => res.json())
-                .then(setSubscriptions);
+            subscriptionsApi.list({ memberId: selectedMember }).then(setSubscriptions).catch(() => setSubscriptions([]));
         } else {
             setSubscriptions([]);
             setSelectedSub(null);
         }
     }, [selectedMember]);
-
-    // ... (rest of effects)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,25 +44,15 @@ export default function NewCollectionPage() {
         setError('');
 
         try {
-            const res = await fetch('/api/collections', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    groupMemberId: selectedSub._id,
-                    ...formData,
-                    amountPaid: Number(formData.amountPaid)
-                }),
+            await collectionsApi.create({
+                groupMemberId: selectedSub._id,
+                ...formData,
+                amountPaid: Number(formData.amountPaid)
             });
-
-            if (res.ok) {
-                router.push('/collections');
-            } else {
-                const err = await res.json();
-                setError(err.error || 'Failed to record collection');
-            }
-        } catch (err) {
-            console.error(err);
-            setError('Error recording collection');
+            await invalidateAfterCollectionCreate(selectedSub.groupId?._id);
+            router.push('/collections');
+        } catch (err: any) {
+            setError(err.message || 'Failed to record collection');
         } finally {
             setLoading(false);
         }
@@ -85,34 +70,30 @@ export default function NewCollectionPage() {
                     </div>
                 )}
 
-                {/* Member Selection */}
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-300">Select Member</label>
+                    <label className="text-sm font-medium text-zinc-300">Select Member</label>
                     <select
-                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                        className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                         value={selectedMember}
                         onChange={e => setSelectedMember(e.target.value)}
                         required
                     >
                         <option value="">-- Choose Member --</option>
-                        {members.map(m => (
+                        {memberList.map((m: any) => (
                             <option key={m._id} value={m._id}>{m.name} ({m.phone})</option>
                         ))}
                     </select>
                 </div>
 
-                {/* Subscription Selection */}
                 {selectedMember && (
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300">Select Group/Chit</label>
+                        <label className="text-sm font-medium text-zinc-300">Select Group/Chit</label>
                         <select
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             onChange={e => {
                                 const sub = subscriptions.find(s => s._id === e.target.value);
                                 setSelectedSub(sub);
                                 if (sub) {
-                                    // Auto-fill amount due?
-                                    // Calculate logic: (Contribution * Units) / Factor
                                     const amount = (sub.groupId.contributionAmount * sub.units) / sub.collectionFactor;
                                     setFormData(prev => ({ ...prev, amountPaid: String(amount) }));
                                 }
@@ -132,65 +113,64 @@ export default function NewCollectionPage() {
                 {selectedSub && (
                     <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl mb-6">
                         <h4 className="font-bold text-indigo-400 mb-2">Subscription Details</h4>
-                        <div className="grid grid-cols-2 gap-4 text-sm text-slate-300">
+                        <div className="grid grid-cols-2 gap-4 text-sm text-zinc-300">
                             <div>
-                                <p className="text-slate-500">Total Due</p>
+                                <p className="text-zinc-500">Total Due</p>
                                 <p>₹ {selectedSub.totalDue}</p>
                             </div>
                             <div>
-                                <p className="text-slate-500">Pending</p>
+                                <p className="text-zinc-500">Pending</p>
                                 <p>₹ {selectedSub.pendingAmount}</p>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Collection Details */}
                 <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300">Period Number</label>
+                        <label className="text-sm font-medium text-zinc-300">Period Number</label>
                         <input
                             type="number"
                             name="basePeriodNumber"
                             value={formData.basePeriodNumber}
                             onChange={e => setFormData({ ...formData, basePeriodNumber: e.target.value })}
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             placeholder="e.g. 1"
                             required
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300">Date</label>
+                        <label className="text-sm font-medium text-zinc-300">Date</label>
                         <input
                             type="date"
                             name="periodDate"
                             value={formData.periodDate}
                             onChange={e => setFormData({ ...formData, periodDate: e.target.value })}
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             required
                         />
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-300">Amount Paid</label>
+                    <label className="text-sm font-medium text-zinc-300">Amount Paid</label>
                     <div className="relative">
-                        <span className="absolute left-4 top-3 text-slate-500">₹</span>
+                        <span className="absolute left-4 top-3 text-zinc-500">₹</span>
                         <input
                             type="number"
                             name="amountPaid"
                             value={formData.amountPaid}
                             onChange={e => setFormData({ ...formData, amountPaid: e.target.value })}
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             required
                         />
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-300">Payment Mode</label>
+                    <label className="text-sm font-medium text-zinc-300">Payment Mode</label>
                     <select
-                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                        className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                         value={formData.paymentMode}
                         onChange={e => setFormData({ ...formData, paymentMode: e.target.value })}
                     >
@@ -205,7 +185,7 @@ export default function NewCollectionPage() {
                     <button
                         type="button"
                         onClick={() => router.back()}
-                        className="px-6 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                        className="px-6 py-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
                     >
                         Cancel
                     </button>

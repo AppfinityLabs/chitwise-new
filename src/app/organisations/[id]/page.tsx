@@ -87,7 +87,7 @@ export default function OrganisationDetail() {
     if (!organisation) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-                <p className="text-slate-400">Organisation not found</p>
+                <p className="text-zinc-400">Organisation not found</p>
                 <Link href="/organisations" className="text-indigo-400 hover:text-indigo-300">
                     Back to Organisations
                 </Link>
@@ -101,7 +101,7 @@ export default function OrganisationDetail() {
             <div className="mb-8">
                 <Link
                     href="/organisations"
-                    className="inline-flex items-center gap-2 text-slate-400 hover:text-indigo-400 transition-colors mb-6"
+                    className="inline-flex items-center gap-2 text-zinc-400 hover:text-indigo-400 transition-colors mb-6"
                 >
                     <ArrowLeft size={18} />
                     <span>Back to Organisations</span>
@@ -115,14 +115,14 @@ export default function OrganisationDetail() {
                                 {organisation.code}
                             </span>
                             {organisation.phone && (
-                                <span className="text-sm text-slate-400 flex items-center gap-1.5">
+                                <span className="text-sm text-zinc-400 flex items-center gap-1.5">
                                     <Phone size={14} />
                                     {organisation.phone}
                                 </span>
                             )}
                             <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-md ${organisation.status === 'ACTIVE'
                                     ? 'bg-emerald-500/20 text-emerald-400'
-                                    : 'bg-slate-700/50 text-slate-400'
+                                    : 'bg-zinc-700/50 text-zinc-400'
                                 }`}>
                                 {organisation.status}
                             </span>
@@ -133,7 +133,7 @@ export default function OrganisationDetail() {
                     <div className="flex gap-2">
                         <Link
                             href={`/organisations/${organisation._id}/edit`}
-                            className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 transition-colors"
+                            className="px-4 py-2 rounded-lg text-sm font-medium bg-zinc-800/50 hover:bg-zinc-700/50 text-zinc-300 transition-colors"
                         >
                             Edit
                         </Link>
@@ -153,28 +153,28 @@ export default function OrganisationDetail() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Basic Information */}
                 <div className="glass-card p-6">
-                    <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                    <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4">
                         Basic Information
                     </h2>
 
                     <div className="space-y-4">
                         {organisation.description && (
                             <div>
-                                <label className="text-xs text-slate-500 mb-1 block">Description</label>
+                                <label className="text-xs text-zinc-500 mb-1 block">Description</label>
                                 <p className="text-white">{organisation.description}</p>
                             </div>
                         )}
 
                         {organisation.address && (
                             <div>
-                                <label className="text-xs text-slate-500 mb-1 block">Address</label>
+                                <label className="text-xs text-zinc-500 mb-1 block">Address</label>
                                 <p className="text-white">{organisation.address}</p>
                             </div>
                         )}
 
                         {organisation.email && (
                             <div>
-                                <label className="text-xs text-slate-500 mb-1 block">Email</label>
+                                <label className="text-xs text-zinc-500 mb-1 block">Email</label>
                                 <a
                                     href={`mailto:${organisation.email}`}
                                     className="text-indigo-400 hover:text-indigo-300 transition-colors"
@@ -188,22 +188,22 @@ export default function OrganisationDetail() {
 
                 {/* Tax Information */}
                 <div className="glass-card p-6">
-                    <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                    <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4">
                         Tax Information
                     </h2>
 
                     <div className="space-y-4">
                         <div>
-                            <label className="text-xs text-slate-500 mb-1 block">GST Number</label>
+                            <label className="text-xs text-zinc-500 mb-1 block">GST Number</label>
                             <p className="text-white font-mono">
-                                {organisation.gstNumber || <span className="text-slate-600">Not provided</span>}
+                                {organisation.gstNumber || <span className="text-zinc-600">Not provided</span>}
                             </p>
                         </div>
 
                         <div>
-                            <label className="text-xs text-slate-500 mb-1 block">PAN Number</label>
+                            <label className="text-xs text-zinc-500 mb-1 block">PAN Number</label>
                             <p className="text-white font-mono">
-                                {organisation.panNumber || <span className="text-slate-600">Not provided</span>}
+                                {organisation.panNumber || <span className="text-zinc-600">Not provided</span>}
                             </p>
                         </div>
                     </div>

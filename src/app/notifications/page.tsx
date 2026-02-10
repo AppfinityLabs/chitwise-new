@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications, useOrganisations, invalidateAfterNotification } from '@/lib/swr';
+import { notificationsApi } from '@/lib/api';
 import {
     Bell,
     Send,
@@ -47,12 +49,6 @@ interface NotificationItem {
     createdBy?: { name: string; email: string };
 }
 
-interface Organisation {
-    _id: string;
-    name: string;
-    code: string;
-}
-
 interface Template {
     _id: string;
     name: string;
@@ -66,14 +62,18 @@ interface Template {
 export default function NotificationsPage() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
-    const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-    const [organisations, setOrganisations] = useState<Organisation[]>([]);
+    const { data: notificationsData, isLoading } = useNotifications();
+    const { data: organisations = [] } = useOrganisations();
     const [templates, setTemplates] = useState<Template[]>([]);
-    const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [sending, setSending] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+    // Derive notifications from SWR data
+    const notifications: NotificationItem[] = Array.isArray(notificationsData?.notifications)
+        ? notificationsData.notifications
+        : Array.isArray(notificationsData) ? notificationsData : [];
 
     // Form state
     const [title, setTitle] = useState('');
@@ -93,17 +93,24 @@ export default function NotificationsPage() {
     const [templateName, setTemplateName] = useState('');
     const [savingTemplate, setSavingTemplate] = useState(false);
 
+    const fetchTemplates = useCallback(async () => {
+        try {
+            const data = await notificationsApi.templates.list();
+            setTemplates(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('Failed to fetch templates:', err);
+        }
+    }, []);
+
     useEffect(() => {
         if (!authLoading && user && user.role !== 'SUPER_ADMIN') {
             router.push('/');
             return;
         }
         if (!authLoading && user?.role === 'SUPER_ADMIN') {
-            fetchNotifications();
-            fetchOrganisations();
             fetchTemplates();
         }
-    }, [user, authLoading, router]);
+    }, [user, authLoading, router, fetchTemplates]);
 
     // Auto-poll for scheduled notifications every 30 seconds
     useEffect(() => {
@@ -117,51 +124,18 @@ export default function NotificationsPage() {
                 const data = await res.json();
                 if (data.processed > 0) {
                     console.log(`📤 Cron: ${data.processed} scheduled notifications sent`);
-                    fetchNotifications();
+                    await invalidateAfterNotification();
                 }
             } catch (err) {
                 // Silent fail for cron polling
             }
         };
 
-        // Check immediately on mount, then every 30s
         checkScheduled();
         const interval = setInterval(checkScheduled, 30000);
         return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
-
-    async function fetchNotifications() {
-        try {
-            const res = await fetch('/api/notifications');
-            const data = await res.json();
-            setNotifications(Array.isArray(data.notifications) ? data.notifications : Array.isArray(data) ? data : []);
-        } catch (err) {
-            console.error('Failed to fetch notifications:', err);
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    async function fetchOrganisations() {
-        try {
-            const res = await fetch('/api/organisations');
-            const data = await res.json();
-            setOrganisations(Array.isArray(data) ? data : []);
-        } catch (err) {
-            console.error('Failed to fetch organisations:', err);
-        }
-    }
-
-    async function fetchTemplates() {
-        try {
-            const res = await fetch('/api/notifications/templates');
-            const data = await res.json();
-            setTemplates(Array.isArray(data) ? data : []);
-        } catch (err) {
-            console.error('Failed to fetch templates:', err);
-        }
-    }
 
     async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
@@ -204,24 +178,14 @@ export default function NotificationsPage() {
         if (!templateName.trim() || !title.trim() || !body.trim()) return;
         setSavingTemplate(true);
         try {
-            const res = await fetch('/api/notifications/templates', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: templateName.trim(),
-                    title: title.trim(),
-                    body: body.trim(),
-                    image: image || undefined,
-                    url: url || undefined,
-                    priority,
-                }),
+            await notificationsApi.templates.create({
+                name: templateName.trim(),
+                title: title.trim(),
+                body: body.trim(),
+                image: image || undefined,
+                url: url || undefined,
+                priority,
             });
-
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Failed to save template');
-            }
-
             setShowSaveTemplate(false);
             setTemplateName('');
             fetchTemplates();
@@ -234,7 +198,7 @@ export default function NotificationsPage() {
 
     async function handleDeleteTemplate(id: string) {
         try {
-            await fetch(`/api/notifications/templates/${id}`, { method: 'DELETE' });
+            await notificationsApi.templates.delete(id);
             fetchTemplates();
         } catch (err) {
             console.error('Failed to delete template:', err);
@@ -263,20 +227,9 @@ export default function NotificationsPage() {
                 payload.sendNow = false;
             }
 
-            const res = await fetch('/api/notifications', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Failed to create notification');
-            }
-
-            // Reset form
+            await notificationsApi.create(payload);
             resetForm();
-            fetchNotifications();
+            await invalidateAfterNotification();
         } catch (err: any) {
             alert(err.message || 'Failed to send notification');
         } finally {
@@ -300,12 +253,8 @@ export default function NotificationsPage() {
     async function handleResend(id: string) {
         setActionLoading(id);
         try {
-            const res = await fetch(`/api/notifications/${id}?action=resend`, { method: 'POST' });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Resend failed');
-            }
-            fetchNotifications();
+            await notificationsApi.resend(id);
+            await invalidateAfterNotification();
         } catch (err: any) {
             alert(err.message || 'Resend failed');
         } finally {
@@ -316,13 +265,9 @@ export default function NotificationsPage() {
     async function handleDelete(id: string) {
         setActionLoading(id);
         try {
-            const res = await fetch(`/api/notifications/${id}`, { method: 'DELETE' });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Delete failed');
-            }
+            await notificationsApi.delete(id);
             setDeleteConfirm(null);
-            fetchNotifications();
+            await invalidateAfterNotification();
         } catch (err: any) {
             alert(err.message || 'Delete failed');
         } finally {
@@ -396,10 +341,22 @@ export default function NotificationsPage() {
         return null;
     }
 
-    if (authLoading || loading) {
+    if (authLoading || isLoading) {
         return (
-            <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+            <div className="flex-1 p-8 space-y-8">
+                <div className="flex items-center justify-between">
+                    <div className="space-y-2"><div className="skeleton h-8 w-52 rounded" /><div className="skeleton h-4 w-72 rounded" /></div>
+                    <div className="skeleton h-10 w-40 rounded-xl" />
+                </div>
+                <div className="space-y-3">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="glass-card p-5 space-y-3">
+                            <div className="flex justify-between"><div className="skeleton h-5 w-48 rounded" /><div className="skeleton h-5 w-16 rounded-full" /></div>
+                            <div className="skeleton h-4 w-full rounded" />
+                            <div className="flex gap-4"><div className="skeleton h-3 w-20 rounded" /><div className="skeleton h-3 w-24 rounded" /><div className="skeleton h-3 w-28 rounded" /></div>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }
@@ -418,7 +375,7 @@ export default function NotificationsPage() {
                         </div>
                         Push Notifications
                     </h1>
-                    <p className="text-sm text-slate-400 mt-1">Send notifications to organisation app users</p>
+                    <p className="text-sm text-zinc-400 mt-1">Send notifications to organisation app users</p>
                 </div>
                 <button
                     onClick={() => setShowForm(!showForm)}
@@ -431,7 +388,7 @@ export default function NotificationsPage() {
 
             {/* Create Form */}
             {showForm && (
-                <div className="mb-8 bg-slate-900/50 border border-white/5 rounded-2xl p-6">
+                <div className="mb-8 bg-zinc-900/50 border border-white/5 rounded-2xl p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                             <Send size={18} className="text-indigo-400" />
@@ -443,13 +400,13 @@ export default function NotificationsPage() {
                                 <div className="relative group">
                                     <button
                                         type="button"
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-white/10 rounded-lg text-xs text-slate-300 hover:text-white hover:border-white/20 transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 border border-white/10 rounded-lg text-xs text-zinc-300 hover:text-white hover:border-white/20 transition-colors"
                                     >
                                         <BookTemplate size={14} />
                                         Templates
                                         <ChevronDown size={12} />
                                     </button>
-                                    <div className="absolute right-0 top-full mt-1 w-64 bg-slate-800 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 max-h-60 overflow-y-auto">
+                                    <div className="absolute right-0 top-full mt-1 w-64 bg-zinc-800 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 max-h-60 overflow-y-auto">
                                         {templates.map((t) => (
                                             <div
                                                 key={t._id}
@@ -461,12 +418,12 @@ export default function NotificationsPage() {
                                                     className="flex-1 text-left"
                                                 >
                                                     <p className="text-sm text-white font-medium truncate">{t.name}</p>
-                                                    <p className="text-[11px] text-slate-500 truncate">{t.title}</p>
+                                                    <p className="text-[11px] text-zinc-500 truncate">{t.title}</p>
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleDeleteTemplate(t._id)}
-                                                    className="ml-2 text-slate-600 hover:text-red-400 transition-colors"
+                                                    className="ml-2 text-zinc-600 hover:text-red-400 transition-colors"
                                                 >
                                                     <Trash2 size={12} />
                                                 </button>
@@ -480,7 +437,7 @@ export default function NotificationsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowSaveTemplate(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-white/10 rounded-lg text-xs text-slate-300 hover:text-white hover:border-white/20 transition-colors"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 border border-white/10 rounded-lg text-xs text-zinc-300 hover:text-white hover:border-white/20 transition-colors"
                                 >
                                     <Save size={14} />
                                     Save Template
@@ -492,7 +449,7 @@ export default function NotificationsPage() {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Title */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1.5">Title</label>
+                            <label className="block text-sm font-medium text-zinc-300 mb-1.5">Title</label>
                             <input
                                 type="text"
                                 value={title}
@@ -500,14 +457,14 @@ export default function NotificationsPage() {
                                 maxLength={100}
                                 required
                                 placeholder="e.g. Monthly Collection Reminder"
-                                className="w-full px-4 py-2.5 bg-slate-800/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
+                                className="w-full px-4 py-2.5 bg-zinc-800/50 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
                             />
-                            <p className="text-xs text-slate-500 mt-1">{title.length}/100</p>
+                            <p className="text-xs text-zinc-500 mt-1">{title.length}/100</p>
                         </div>
 
                         {/* Body */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1.5">Message</label>
+                            <label className="block text-sm font-medium text-zinc-300 mb-1.5">Message</label>
                             <textarea
                                 value={body}
                                 onChange={(e) => setBody(e.target.value)}
@@ -515,26 +472,26 @@ export default function NotificationsPage() {
                                 required
                                 rows={3}
                                 placeholder="Notification message content..."
-                                className="w-full px-4 py-2.5 bg-slate-800/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 resize-none"
+                                className="w-full px-4 py-2.5 bg-zinc-800/50 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 resize-none"
                             />
-                            <p className="text-xs text-slate-500 mt-1">{body.length}/500</p>
+                            <p className="text-xs text-zinc-500 mt-1">{body.length}/500</p>
                         </div>
 
                         {/* URL + Image Row */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1.5">Link URL <span className="text-slate-500">(optional)</span></label>
+                                <label className="block text-sm font-medium text-zinc-300 mb-1.5">Link URL <span className="text-zinc-500">(optional)</span></label>
                                 <input
                                     type="text"
                                     value={url}
                                     onChange={(e) => setUrl(e.target.value)}
                                     placeholder="/ (opens app home)"
-                                    className="w-full px-4 py-2.5 bg-slate-800/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
+                                    className="w-full px-4 py-2.5 bg-zinc-800/50 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                                    Banner Image <span className="text-slate-500">(optional)</span>
+                                <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+                                    Banner Image <span className="text-zinc-500">(optional)</span>
                                 </label>
                                 <div className="flex gap-2">
                                     <input
@@ -542,7 +499,7 @@ export default function NotificationsPage() {
                                         value={image}
                                         onChange={(e) => setImage(e.target.value)}
                                         placeholder="Image URL or upload →"
-                                        className="flex-1 px-4 py-2.5 bg-slate-800/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 text-sm"
+                                        className="flex-1 px-4 py-2.5 bg-zinc-800/50 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 text-sm"
                                     />
                                     <input
                                         ref={fileInputRef}
@@ -555,7 +512,7 @@ export default function NotificationsPage() {
                                         type="button"
                                         onClick={() => fileInputRef.current?.click()}
                                         disabled={uploading}
-                                        className="px-3 py-2.5 bg-slate-700 hover:bg-slate-600 border border-white/10 rounded-xl text-slate-300 transition-colors disabled:opacity-50"
+                                        className="px-3 py-2.5 bg-zinc-700 hover:bg-zinc-600 border border-white/10 rounded-xl text-zinc-300 transition-colors disabled:opacity-50"
                                     >
                                         {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
                                     </button>
@@ -565,7 +522,7 @@ export default function NotificationsPage() {
 
                         {/* Image Preview */}
                         {image && (
-                            <div className="relative rounded-xl overflow-hidden border border-white/10 bg-slate-800/30">
+                            <div className="relative rounded-xl overflow-hidden border border-white/10 bg-zinc-800/30">
                                 <img src={image} alt="Preview" className="w-full h-40 object-cover" />
                                 <button
                                     type="button"
@@ -581,15 +538,15 @@ export default function NotificationsPage() {
                         <div className="grid grid-cols-3 gap-4">
                             {/* Priority */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1.5">Priority</label>
+                                <label className="block text-sm font-medium text-zinc-300 mb-1.5">Priority</label>
                                 <div className="flex gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setPriority('normal')}
                                         className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors border ${
                                             priority === 'normal'
-                                                ? 'bg-slate-700 border-indigo-500/50 text-white'
-                                                : 'bg-slate-800/50 border-white/10 text-slate-400 hover:text-white'
+                                                ? 'bg-zinc-700 border-indigo-500/50 text-white'
+                                                : 'bg-zinc-800/50 border-white/10 text-zinc-400 hover:text-white'
                                         }`}
                                     >
                                         <Bell size={14} /> Normal
@@ -600,7 +557,7 @@ export default function NotificationsPage() {
                                         className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors border ${
                                             priority === 'urgent'
                                                 ? 'bg-red-500/15 border-red-500/50 text-red-400'
-                                                : 'bg-slate-800/50 border-white/10 text-slate-400 hover:text-white'
+                                                : 'bg-zinc-800/50 border-white/10 text-zinc-400 hover:text-white'
                                         }`}
                                     >
                                         <Zap size={14} /> Urgent
@@ -610,11 +567,11 @@ export default function NotificationsPage() {
 
                             {/* Target */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1.5">Send To</label>
+                                <label className="block text-sm font-medium text-zinc-300 mb-1.5">Send To</label>
                                 <select
                                     value={targetType}
                                     onChange={(e) => setTargetType(e.target.value as 'ALL' | 'ORGANISATION')}
-                                    className="w-full px-4 py-2.5 bg-slate-800/50 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                    className="w-full px-4 py-2.5 bg-zinc-800/50 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                                 >
                                     <option value="ALL">All Organisations</option>
                                     <option value="ORGANISATION">Specific Organisation</option>
@@ -623,12 +580,12 @@ export default function NotificationsPage() {
 
                             {targetType === 'ORGANISATION' ? (
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-1.5">Organisation</label>
+                                    <label className="block text-sm font-medium text-zinc-300 mb-1.5">Organisation</label>
                                     <select
                                         value={targetId}
                                         onChange={(e) => setTargetId(e.target.value)}
                                         required
-                                        className="w-full px-4 py-2.5 bg-slate-800/50 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                        className="w-full px-4 py-2.5 bg-zinc-800/50 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                                     >
                                         <option value="">Select...</option>
                                         {organisations.map((org) => (
@@ -644,13 +601,13 @@ export default function NotificationsPage() {
                         </div>
 
                         {/* Send Mode: Send Now / Schedule */}
-                        <div className="p-4 bg-slate-800/30 rounded-xl border border-white/5 space-y-3">
+                        <div className="p-4 bg-zinc-800/30 rounded-xl border border-white/5 space-y-3">
                             <div className="flex items-center gap-3">
                                 <button
                                     type="button"
                                     onClick={() => { setSendNow(true); setScheduledAt(''); }}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                        sendNow ? 'bg-indigo-600 text-white' : 'bg-slate-700/50 text-slate-400 hover:text-white'
+                                        sendNow ? 'bg-indigo-600 text-white' : 'bg-zinc-700/50 text-zinc-400 hover:text-white'
                                     }`}
                                 >
                                     <Send size={14} /> Send Now
@@ -660,7 +617,7 @@ export default function NotificationsPage() {
                                     onClick={() => setSendNow(false)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                                         !sendNow && scheduledAt ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                                        !sendNow ? 'bg-slate-700 text-white' : 'bg-slate-700/50 text-slate-400 hover:text-white'
+                                        !sendNow ? 'bg-zinc-700 text-white' : 'bg-zinc-700/50 text-zinc-400 hover:text-white'
                                     }`}
                                 >
                                     <Calendar size={14} /> Schedule
@@ -669,7 +626,7 @@ export default function NotificationsPage() {
                                     <button
                                         type="button"
                                         onClick={() => setSendNow(false)}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-700/50 text-slate-400"
+                                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-zinc-700/50 text-zinc-400"
                                     >
                                         <FileText size={14} /> Save as Draft
                                     </button>
@@ -679,16 +636,16 @@ export default function NotificationsPage() {
                             {/* Schedule date picker */}
                             {!sendNow && (
                                 <div className="flex items-center gap-3">
-                                    <label className="text-sm text-slate-400">Schedule for:</label>
+                                    <label className="text-sm text-zinc-400">Schedule for:</label>
                                     <input
                                         type="datetime-local"
                                         value={scheduledAt}
                                         onChange={(e) => setScheduledAt(e.target.value)}
                                         min={minSchedule}
-                                        className="px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 [color-scheme:dark]"
+                                        className="px-3 py-2 bg-zinc-800/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 [color-scheme:dark]"
                                     />
                                     {!scheduledAt && (
-                                        <span className="text-xs text-slate-500">Leave empty to save as draft</span>
+                                        <span className="text-xs text-zinc-500">Leave empty to save as draft</span>
                                     )}
                                 </div>
                             )}
@@ -699,7 +656,7 @@ export default function NotificationsPage() {
                             <button
                                 type="button"
                                 onClick={resetForm}
-                                className="px-4 py-2.5 text-slate-400 hover:text-white transition-colors text-sm"
+                                className="px-4 py-2.5 text-zinc-400 hover:text-white transition-colors text-sm"
                             >
                                 Cancel
                             </button>
@@ -724,7 +681,7 @@ export default function NotificationsPage() {
                     {/* Save Template Modal */}
                     {showSaveTemplate && (
                         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowSaveTemplate(false)}>
-                            <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-96 shadow-2xl" onClick={e => e.stopPropagation()}>
+                            <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-96 shadow-2xl" onClick={e => e.stopPropagation()}>
                                 <h3 className="text-white font-semibold mb-3">Save as Template</h3>
                                 <input
                                     type="text"
@@ -732,10 +689,10 @@ export default function NotificationsPage() {
                                     onChange={(e) => setTemplateName(e.target.value)}
                                     placeholder="Template name (e.g. Monthly Reminder)"
                                     maxLength={50}
-                                    className="w-full px-4 py-2.5 bg-slate-800/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 mb-4"
+                                    className="w-full px-4 py-2.5 bg-zinc-800/50 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 mb-4"
                                 />
                                 <div className="flex justify-end gap-2">
-                                    <button type="button" onClick={() => setShowSaveTemplate(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
+                                    <button type="button" onClick={() => setShowSaveTemplate(false)} className="px-4 py-2 text-sm text-zinc-400 hover:text-white">Cancel</button>
                                     <button
                                         type="button"
                                         onClick={handleSaveTemplate}
@@ -755,22 +712,22 @@ export default function NotificationsPage() {
             {/* Notifications List */}
             {notifications.length === 0 ? (
                 <div className="text-center py-20">
-                    <div className="h-16 w-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mx-auto mb-4">
-                        <Bell size={28} className="text-slate-600" />
+                    <div className="h-16 w-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mx-auto mb-4">
+                        <Bell size={28} className="text-zinc-600" />
                     </div>
-                    <h3 className="text-lg font-medium text-slate-300">No notifications yet</h3>
-                    <p className="text-sm text-slate-500 mt-1">Create your first push notification to reach org users</p>
+                    <h3 className="text-lg font-medium text-zinc-300">No notifications yet</h3>
+                    <p className="text-sm text-zinc-500 mt-1">Create your first push notification to reach org users</p>
                 </div>
             ) : (
                 <div className="space-y-3">
                     {notifications.map((notif) => (
                         <div
                             key={notif._id}
-                            className="bg-slate-900/50 border border-white/5 rounded-xl overflow-hidden hover:border-white/10 transition-colors"
+                            className="bg-zinc-900/50 border border-white/5 rounded-xl overflow-hidden hover:border-white/10 transition-colors"
                         >
                             {/* Image banner */}
                             {notif.image && (
-                                <div className="w-full h-32 bg-slate-800">
+                                <div className="w-full h-32 bg-zinc-800">
                                     <img src={notif.image} alt="" className="w-full h-full object-cover opacity-80" />
                                 </div>
                             )}
@@ -782,8 +739,8 @@ export default function NotificationsPage() {
                                             {getStatusBadge(notif.status, notif.scheduledAt)}
                                             {getPriorityBadge(notif.priority)}
                                         </div>
-                                        <p className="text-sm text-slate-400 line-clamp-2">{notif.body}</p>
-                                        <div className="flex items-center gap-4 mt-3 text-xs text-slate-500 flex-wrap">
+                                        <p className="text-sm text-zinc-400 line-clamp-2">{notif.body}</p>
+                                        <div className="flex items-center gap-4 mt-3 text-xs text-zinc-500 flex-wrap">
                                             <span className="flex items-center gap-1">
                                                 {getTargetIcon(notif.targetType)}
                                                 {notif.targetType === 'ALL' ? 'All Orgs' : notif.targetType}
@@ -813,7 +770,7 @@ export default function NotificationsPage() {
                                         <button
                                             onClick={() => handleClone(notif)}
                                             title="Clone to new notification"
-                                            className="p-2 text-slate-500 hover:text-indigo-400 hover:bg-white/5 rounded-lg transition-colors"
+                                            className="p-2 text-zinc-500 hover:text-indigo-400 hover:bg-white/5 rounded-lg transition-colors"
                                         >
                                             <Copy size={15} />
                                         </button>
@@ -823,7 +780,7 @@ export default function NotificationsPage() {
                                                 onClick={() => handleResend(notif._id)}
                                                 disabled={actionLoading === notif._id}
                                                 title="Resend this notification"
-                                                className="p-2 text-slate-500 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors disabled:opacity-50"
+                                                className="p-2 text-zinc-500 hover:text-emerald-400 hover:bg-white/5 rounded-lg transition-colors disabled:opacity-50"
                                             >
                                                 {actionLoading === notif._id ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
                                             </button>
@@ -840,7 +797,7 @@ export default function NotificationsPage() {
                                                 </button>
                                                 <button
                                                     onClick={() => setDeleteConfirm(null)}
-                                                    className="p-2 text-slate-500 hover:text-white rounded-lg text-xs"
+                                                    className="p-2 text-zinc-500 hover:text-white rounded-lg text-xs"
                                                 >
                                                     No
                                                 </button>
@@ -849,7 +806,7 @@ export default function NotificationsPage() {
                                             <button
                                                 onClick={() => setDeleteConfirm(notif._id)}
                                                 title="Delete notification"
-                                                className="p-2 text-slate-500 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors"
+                                                className="p-2 text-zinc-500 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors"
                                             >
                                                 <Trash2 size={15} />
                                             </button>

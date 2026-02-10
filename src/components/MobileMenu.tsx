@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, PieChart, Settings, UserCog, LogOut, X } from 'lucide-react';
+import { Building2, PieChart, Settings, UserCog, LogOut, X, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ interface MobileMenuProps {
 
 const menuItems = [
     { icon: Building2, label: 'Organisations', href: '/organisations' },
+    { icon: Bell, label: 'Notifications', href: '/notifications' },
     { icon: PieChart, label: 'Reports', href: '/reports' },
     { icon: UserCog, label: 'System Users', href: '/users' },
     { icon: Settings, label: 'Settings', href: '/settings' },
@@ -43,7 +44,6 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         <AnimatePresence>
             {isOpen && (
                 <>
-                    {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -52,32 +52,31 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden"
                     />
 
-                    {/* Drawer */}
                     <motion.div
                         initial={{ y: "100%" }}
                         animate={{ y: 0 }}
                         exit={{ y: "100%" }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-white/10 rounded-t-3xl z-[70] md:hidden overflow-hidden flex flex-col max-h-[85vh]"
+                        className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-white/5 rounded-t-3xl z-[70] md:hidden overflow-hidden flex flex-col max-h-[85vh]"
                     >
-                        <div className="w-12 h-1.5 bg-slate-700/50 rounded-full mx-auto mt-3 mb-2" />
+                        <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mt-3 mb-2" />
 
                         <div className="p-4 flex items-center justify-between border-b border-white/5 pb-4">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-sm font-bold">
+                                <div className="w-10 h-10 rounded-full bg-indigo-500/15 flex items-center justify-center text-indigo-400 text-sm font-bold">
                                     {user ? getUserInitials(user.name) : 'U'}
                                 </div>
                                 <div>
                                     <p className="text-white font-medium">{user?.name || 'User'}</p>
-                                    <p className="text-xs text-slate-400 capitalize">{user?.role.replace('_', ' ').toLowerCase() || 'Role'}</p>
+                                    <p className="text-xs text-zinc-500 capitalize">{user?.role.replace('_', ' ').toLowerCase() || 'Role'}</p>
                                 </div>
                             </div>
-                            <button onClick={onClose} className="p-2 rounded-full hover:bg-white/5 text-slate-400">
+                            <button onClick={onClose} className="p-2 rounded-full hover:bg-white/5 text-zinc-400">
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <div className="p-4 space-y-2 overflow-y-auto">
+                        <div className="p-4 space-y-1 overflow-y-auto">
                             {menuItems.filter(item => {
                                 if (!user) return false;
                                 if (user.role === 'SUPER_ADMIN') return true;
@@ -95,8 +94,8 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                                         className={cn(
                                             "flex items-center gap-4 px-4 py-3 rounded-xl transition-all",
                                             isActive
-                                                ? "bg-indigo-500/20 text-indigo-300"
-                                                : "text-slate-300 hover:bg-white/5"
+                                                ? "bg-white/[0.06] text-indigo-400"
+                                                : "text-zinc-300 hover:bg-white/5"
                                         )}
                                     >
                                         <item.icon size={20} />
