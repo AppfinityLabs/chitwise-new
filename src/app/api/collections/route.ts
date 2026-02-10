@@ -84,6 +84,17 @@ export async function POST(request: NextRequest) {
         }
 
         const group = subscription.groupId;
+
+        // Reject collection if group hasn't started yet
+        // @ts-ignore
+        if (group.startDate && new Date(group.startDate) > new Date()) {
+            await session.abortTransaction();
+            session.endSession();
+            return withCors(NextResponse.json({
+                error: 'Cannot collect payments before the group start date.'
+            }, { status: 400 }), origin);
+        }
+
         // @ts-ignore
         const contributionPerPeriod = group.contributionAmount * subscription.units;
         const amountDuePerCollection = contributionPerPeriod / subscription.collectionFactor;
