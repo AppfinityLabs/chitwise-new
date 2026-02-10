@@ -34,7 +34,7 @@ export async function GET(
         // Auto-update currentPeriod based on dates
         const now = new Date();
         const start = new Date(group.startDate);
-        let calculatedPeriod = 1;
+        let calculatedPeriod = 0; // 0 = group hasn't started yet
 
         if (now >= start) {
             const diffTime = Math.abs(now.getTime() - start.getTime());
@@ -51,12 +51,10 @@ export async function GET(
         }
 
         // Cap at totalPeriods
-        if (calculatedPeriod > group.totalPeriods) {
-            calculatedPeriod = group.totalPeriods;
-        }
+        calculatedPeriod = Math.min(calculatedPeriod, group.totalPeriods);
 
-        // Update if significantly different (and strictly forward)
-        if (calculatedPeriod > group.currentPeriod) {
+        // Update if changed (allow correction in both directions)
+        if (calculatedPeriod !== group.currentPeriod) {
             group.currentPeriod = calculatedPeriod;
             await group.save();
         }

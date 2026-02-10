@@ -59,8 +59,11 @@ export async function GET(
             .populate('memberId', 'name phone')
             .sort({ basePeriodNumber: -1 });
 
-        // Calculate overdue
-        const expectedAmount = group.currentPeriod * group.contributionAmount * subscription.units;
+        // Calculate overdue (no overdue if group hasn't started yet)
+        const now = new Date();
+        const groupStarted = group.startDate ? new Date(group.startDate) <= now : true;
+        const effectivePeriod = groupStarted ? group.currentPeriod : 0;
+        const expectedAmount = effectivePeriod * group.contributionAmount * subscription.units;
         const overdueAmount = Math.max(0, expectedAmount - subscription.totalCollected);
 
         // Pot value

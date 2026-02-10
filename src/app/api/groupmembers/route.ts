@@ -46,13 +46,16 @@ export async function GET(request: NextRequest) {
     try {
         const subscriptions = await GroupMember.find(query)
             .populate('memberId', 'name phone')
-            .populate('groupId', 'groupName frequency contributionAmount currentPeriod');
+            .populate('groupId', 'groupName frequency contributionAmount currentPeriod startDate');
 
         // Calculate dynamic overdue amount
+        const now = new Date();
         const subscriptionsWithDue = subscriptions.map(sub => {
-            const group = sub.groupId;
-            // Expected: Current Period * Contribution * Units
-            const expectedAmount = group.currentPeriod * group.contributionAmount * sub.units;
+            const group = sub.groupId as any;
+            // If group hasn't started yet, no overdue
+            const groupStarted = group?.startDate ? new Date(group.startDate) <= now : true;
+            const effectivePeriod = groupStarted ? (group?.currentPeriod || 0) : 0;
+            const expectedAmount = effectivePeriod * group.contributionAmount * sub.units;
             const overdueAmount = Math.max(0, expectedAmount - sub.totalCollected);
 
             return {

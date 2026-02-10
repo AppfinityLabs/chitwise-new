@@ -26,9 +26,13 @@ export async function GET(request: NextRequest) {
             .sort({ createdAt: -1 });
 
         // Calculate dynamic overdue for each subscription
+        const now = new Date();
         const subscriptionsWithDue = subscriptions.map(sub => {
             const group = sub.groupId as any;
-            const expectedAmount = group ? group.currentPeriod * group.contributionAmount * sub.units : 0;
+            // If group hasn't started yet, no overdue
+            const groupStarted = group?.startDate ? new Date(group.startDate) <= now : true;
+            const effectivePeriod = groupStarted ? (group?.currentPeriod || 0) : 0;
+            const expectedAmount = group ? effectivePeriod * group.contributionAmount * sub.units : 0;
             const overdueAmount = Math.max(0, expectedAmount - sub.totalCollected);
 
             return {

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
         // Get all subscriptions for this member
         const subscriptions = await GroupMember.find({ memberId })
-            .populate('groupId', 'groupName frequency contributionAmount currentPeriod totalPeriods status');
+            .populate('groupId', 'groupName frequency contributionAmount currentPeriod totalPeriods status startDate');
 
         const activeSubscriptions = subscriptions.filter(s => s.status === 'ACTIVE');
 
@@ -37,12 +37,15 @@ export async function GET(request: NextRequest) {
         // Total pending across all groups
         const totalPending = subscriptions.reduce((sum, s) => sum + s.pendingAmount, 0);
 
-        // Calculate overdue amounts
+        // Calculate overdue amounts (no overdue if group hasn't started yet)
+        const now = new Date();
         let totalOverdue = 0;
         for (const sub of activeSubscriptions) {
             const group = sub.groupId as any;
             if (group) {
-                const expectedAmount = group.currentPeriod * group.contributionAmount * sub.units;
+                const groupStarted = group.startDate ? new Date(group.startDate) <= now : true;
+                const effectivePeriod = groupStarted ? group.currentPeriod : 0;
+                const expectedAmount = effectivePeriod * group.contributionAmount * sub.units;
                 const overdueAmount = Math.max(0, expectedAmount - sub.totalCollected);
                 totalOverdue += overdueAmount;
             }
@@ -58,7 +61,9 @@ export async function GET(request: NextRequest) {
         const upcomingDues = activeSubscriptions
             .map(sub => {
                 const group = sub.groupId as any;
-                const expectedAmount = group ? group.currentPeriod * group.contributionAmount * sub.units : 0;
+                const groupStarted = group?.startDate ? new Date(group.startDate) <= now : true;
+                const effectivePeriod = groupStarted ? (group?.currentPeriod || 0) : 0;
+                const expectedAmount = group ? effectivePeriod * group.contributionAmount * sub.units : 0;
                 const overdueAmount = Math.max(0, expectedAmount - sub.totalCollected);
                 return {
                     _id: sub._id,

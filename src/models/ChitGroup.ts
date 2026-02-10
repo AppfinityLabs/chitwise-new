@@ -33,7 +33,7 @@ const ChitGroupSchema = new Schema<IChitGroup>({
     subscriptionFrequency: { type: String, enum: ['DAILY', 'WEEKLY', 'MONTHLY'] },
     startDate: { type: Date, required: true },
     endDate: { type: Date },
-    currentPeriod: { type: Number, default: 1 },
+    currentPeriod: { type: Number, default: 0 },
     status: { type: String, enum: ['ACTIVE', 'CLOSED', 'SUSPENDED'], default: 'ACTIVE' },
     organisationId: { type: Schema.Types.ObjectId, ref: 'Organisation', required: true },
 }, { timestamps: true });
