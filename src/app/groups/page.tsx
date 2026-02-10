@@ -101,36 +101,8 @@ export default function GroupsPage() {
                 <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {list.map((group: any) => (
                         <motion.div key={group._id} variants={itemVariants} className="relative group">
-                            <div className="glass-card p-6 h-full hover:border-white/10 transition-all duration-300 relative overflow-hidden">
-                                {/* Action Buttons */}
-                                <div className="absolute top-4 right-4 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                                    <Link
-                                        href={`/groups/${group._id}/edit`}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="p-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 transition-all"
-                                        title="Edit group"
-                                    >
-                                        <Edit size={16} />
-                                    </Link>
-                                    <button
-                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleClone(group._id, group.groupName); }}
-                                        disabled={cloning === group._id}
-                                        className="p-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all disabled:opacity-50"
-                                        title="Clone group"
-                                    >
-                                        {cloning === group._id ? <Loader2 size={16} className="animate-spin" /> : <Copy size={16} />}
-                                    </button>
-                                    <button
-                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(group._id, group.groupName); }}
-                                        disabled={deleting === group._id}
-                                        className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-all disabled:opacity-50"
-                                        title="Delete group"
-                                    >
-                                        {deleting === group._id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                                    </button>
-                                </div>
-
-                                <Link href={`/groups/${group._id}`} className="block relative z-10">
+                            <div className="glass-card h-full hover:border-white/10 transition-all duration-300 relative overflow-hidden">
+                                <Link href={`/groups/${group._id}`} className="block p-6">
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="flex items-center gap-2">
                                             <div className="px-3 py-1 rounded-full bg-zinc-800 border border-white/10 text-xs font-medium text-zinc-300">
@@ -167,6 +139,31 @@ export default function GroupsPage() {
                                         <span className="text-white font-bold">₹ {(group.totalUnits * group.contributionAmount).toLocaleString()}</span>
                                     </div>
                                 </Link>
+
+                                {/* Action Buttons — hover footer */}
+                                <div className="flex gap-2 px-6 pb-4 pt-3 opacity-0 group-hover:opacity-100 transition-all border-t border-white/5">
+                                    <Link
+                                        href={`/groups/${group._id}/edit`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium bg-zinc-800/50 hover:bg-amber-500/20 text-zinc-400 hover:text-amber-400 transition-all"
+                                    >
+                                        <Edit size={14} /> Edit
+                                    </Link>
+                                    <button
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleClone(group._id, group.groupName); }}
+                                        disabled={cloning === group._id}
+                                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium bg-zinc-800/50 hover:bg-indigo-500/20 text-zinc-400 hover:text-indigo-400 transition-all disabled:opacity-50"
+                                    >
+                                        {cloning === group._id ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />} Clone
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(group._id, group.groupName); }}
+                                        disabled={deleting === group._id}
+                                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium bg-zinc-800/50 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 transition-all disabled:opacity-50"
+                                    >
+                                        {deleting === group._id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Delete
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     ))}
