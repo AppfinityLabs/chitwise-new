@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
     // Clear the member token cookie
     response.cookies.set('member_token', '', {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
         maxAge: 0,
         path: '/',
     });

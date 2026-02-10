@@ -88,11 +88,11 @@ export async function POST(request: NextRequest) {
             { status: 200 }
         );
 
-        // Set httpOnly cookie with token
+        // Set httpOnly cookie with token (same-origin only, PWAs use Bearer tokens)
         response.cookies.set('member_token', token, {
             httpOnly: true,
-            secure: true,
-            sameSite: 'none',
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 7, // 7 days
             path: '/',
         });
