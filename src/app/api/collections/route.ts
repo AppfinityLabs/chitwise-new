@@ -5,6 +5,7 @@ import GroupMember from '@/models/GroupMember';
 import ChitGroup from '@/models/ChitGroup';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { calculateCurrentPeriod } from '@/lib/utils';
 import mongoose from 'mongoose';
 import { notifyPaymentConfirmation } from '@/lib/eventNotifications';
 
@@ -104,6 +105,17 @@ export async function POST(request: NextRequest) {
             return withCors(NextResponse.json({
                 // @ts-ignore
                 error: `Period number must be between 1 and ${group.totalPeriods}`
+            }, { status: 400 }), origin);
+        }
+
+        // Prevent payment for future periods that haven't arrived yet
+        // @ts-ignore
+        const currentPeriod = calculateCurrentPeriod(group);
+        if (basePeriodNumber > currentPeriod) {
+            await session.abortTransaction();
+            session.endSession();
+            return withCors(NextResponse.json({
+                error: `Cannot collect for period ${basePeriodNumber}. Current period is ${currentPeriod}.`
             }, { status: 400 }), origin);
         }
 

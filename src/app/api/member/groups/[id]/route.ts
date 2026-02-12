@@ -7,6 +7,7 @@ import Winner from '@/models/Winner';
 import Member from '@/models/Member';
 import { verifyMemberAuth } from '@/lib/memberAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { calculateCurrentPeriod, calculateOverdueAmount, calculatePaymentStatus } from '@/lib/utils';
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
@@ -59,12 +60,10 @@ export async function GET(
             .populate('memberId', 'name phone')
             .sort({ basePeriodNumber: -1 });
 
-        // Calculate overdue (no overdue if group hasn't started yet)
-        const now = new Date();
-        const groupStarted = group.startDate ? new Date(group.startDate) <= now : true;
-        const effectivePeriod = groupStarted ? group.currentPeriod : 0;
-        const expectedAmount = effectivePeriod * group.contributionAmount * subscription.units;
-        const overdueAmount = Math.max(0, expectedAmount - subscription.totalCollected);
+        // Dynamically calculate current period and overdue using shared utilities
+        const dynamicCurrentPeriod = calculateCurrentPeriod(group);
+        const overdueAmount = calculateOverdueAmount(group, subscription);
+        const paymentStatus = calculatePaymentStatus(group, subscription);
 
         // Pot value
         const potValue = group.contributionAmount * group.totalUnits;
@@ -78,7 +77,7 @@ export async function GET(
                 contributionAmount: group.contributionAmount,
                 totalUnits: group.totalUnits,
                 totalPeriods: group.totalPeriods,
-                currentPeriod: group.currentPeriod,
+                currentPeriod: dynamicCurrentPeriod,
                 status: group.status,
                 startDate: group.startDate,
                 endDate: group.endDate,
@@ -96,6 +95,7 @@ export async function GET(
                 totalCollected: subscription.totalCollected,
                 pendingAmount: subscription.pendingAmount,
                 overdueAmount,
+                paymentStatus,
                 status: subscription.status,
             },
             payments,

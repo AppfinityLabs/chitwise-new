@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     try {
         const subscriptions = await GroupMember.find(query)
             .populate('memberId', 'name phone')
-            .populate('groupId', 'groupName frequency contributionAmount currentPeriod startDate');
+            .populate('groupId', 'groupName frequency contributionAmount currentPeriod startDate totalPeriods');
 
         // Calculate dynamic overdue amount using shared utility
         const subscriptionsWithDue = subscriptions.map(sub => {

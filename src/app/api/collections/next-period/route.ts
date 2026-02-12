@@ -4,6 +4,7 @@ import Collection from '@/models/Collection';
 import GroupMember from '@/models/GroupMember';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { calculateCurrentPeriod } from '@/lib/utils';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -43,8 +44,9 @@ export async function GET(request: NextRequest) {
         const group = subscription.groupId;
         // @ts-ignore
         const totalPeriods = group.totalPeriods;
+        // Dynamically calculate current period instead of using stale DB value
         // @ts-ignore
-        const currentPeriod = group.currentPeriod || 1;
+        const currentPeriod = calculateCurrentPeriod(group);
         const collectionFactor = subscription.collectionFactor;
 
         // Find all collections for this subscription, grouped by period
