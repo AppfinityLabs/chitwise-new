@@ -5,7 +5,7 @@ import ChitGroup from '@/models/ChitGroup';
 import GroupMember from '@/models/GroupMember';
 import { isPushConfigured, sendToMember, sendToGroup, interpolateTemplate } from '@/lib/pushService';
 import { sendNotificationToTargets } from '../../notifications/route';
-import { calculateCurrentPeriod, calculatePaymentStatus, calculateOverdueAmount } from '@/lib/utils';
+import { calculateCurrentPeriod, calculatePaymentStatus, calculateOverdueAmount, calculateDueAmount } from '@/lib/utils';
 
 // Unified cron endpoint that handles BOTH:
 // 1. Sending scheduled (admin-created) notifications whose time has come
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
 
                 // ── PAYMENT_REMINDER (DUE) ────────────────
                 if (paymentStatus === 'DUE') {
-                    const dueAmount = currentPeriod * group.contributionAmount * sub.units - sub.totalCollected;
+                    const dueAmount = calculateDueAmount(group as any, sub);
 
                     const alreadySent = await Notification.findOne({
                         notificationType: 'PAYMENT_REMINDER',
