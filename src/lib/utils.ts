@@ -107,7 +107,7 @@ function getPeriodStartDate(group: { startDate: Date | string; frequency: 'DAILY
  * This is used for OVERDUE calculation — we only mark as overdue what should
  * have been paid by now.
  */
-function countCompletedInstallments(
+export function countCompletedInstallments(
     group: { startDate: Date | string; frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY'; contributionAmount: number },
     subscription: { units: number; collectionPattern?: 'DAILY' | 'WEEKLY' | 'MONTHLY'; collectionFactor?: number },
     currentPeriod: number

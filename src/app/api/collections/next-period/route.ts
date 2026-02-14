@@ -4,7 +4,7 @@ import Collection from '@/models/Collection';
 import GroupMember from '@/models/GroupMember';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
-import { calculateCurrentPeriod } from '@/lib/utils';
+import { calculateCurrentPeriod, countCompletedInstallments } from '@/lib/utils';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -131,6 +131,52 @@ export async function GET(request: NextRequest) {
             currentMemberInstallment = currentPeriod;
         }
 
+        // ── Overdue installment breakdown ────────────────────────────
+        // Build a list of every unfulfilled installment whose deadline has passed.
+        const overdueInstallments: Array<{
+            basePeriodNumber: number;
+            collectionSequence: number;
+            amountDue: number;
+        }> = [];
+
+        // @ts-ignore
+        const contributionPerPeriod = group.contributionAmount * subscription.units;
+        const amountPerInstallment = contributionPerPeriod / collectionFactor;
+
+        // Completed sub-installments in the current period whose deadline passed
+        const completedSubsInCurrent = countCompletedInstallments(
+            // @ts-ignore
+            group,
+            subscription,
+            currentPeriod
+        );
+
+        for (let p = 1; p <= Math.min(currentPeriod, totalPeriods); p++) {
+            const actualCount = periodCollections[p] || 0;
+
+            // How many installments should have been paid by now for this period?
+            let expectedCount: number;
+            if (p < currentPeriod) {
+                // Fully elapsed period — all sub-installments are overdue if missing
+                expectedCount = collectionFactor;
+            } else {
+                // Current period — only count sub-installments whose deadline passed
+                expectedCount = completedSubsInCurrent;
+            }
+
+            // Each missing slot is one overdue installment
+            for (let seq = actualCount + 1; seq <= expectedCount; seq++) {
+                overdueInstallments.push({
+                    basePeriodNumber: p,
+                    collectionSequence: seq,
+                    amountDue: Math.round(amountPerInstallment * 100) / 100,
+                });
+            }
+        }
+
+        const overdueTotal = overdueInstallments.reduce((sum, i) => sum + i.amountDue, 0);
+        const overdueCount = overdueInstallments.length;
+
         return withCors(
             NextResponse.json({
                 nextPeriod,
@@ -144,6 +190,10 @@ export async function GET(request: NextRequest) {
                 completedMemberInstallments,
                 currentMemberInstallment,
                 collectionPattern: subscription.collectionPattern,
+                // Overdue details
+                overdueInstallments,
+                overdueTotal: Math.round(overdueTotal * 100) / 100,
+                overdueCount,
             }),
             origin
         );
