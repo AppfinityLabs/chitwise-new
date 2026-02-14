@@ -89,6 +89,48 @@ export async function GET(request: NextRequest) {
             });
         }
 
+        // ── Member-centric installment info ──────────────────────────
+        // For members with sub-period collection patterns (e.g. daily in a monthly group),
+        // each sub-installment is treated as the member's own "period".
+        // e.g. daily member in 10-month group with collectionFactor=30 → 300 total.
+        const totalMemberInstallments = totalPeriods * collectionFactor;
+        const completedMemberInstallments = collections.reduce((sum: number, c: any) => sum + c.count, 0);
+        const nextMemberInstallment = Math.min(completedMemberInstallments + 1, totalMemberInstallments);
+
+        // How many member installments are time-available based on elapsed time
+        let currentMemberInstallment = 0;
+        if (collectionFactor > 1) {
+            const completedGroupPeriods = currentPeriod - 1;
+            const now = new Date();
+            // @ts-ignore
+            const start = new Date(group.startDate);
+            let subInstallmentsInCurrentPeriod = collectionFactor;
+            // @ts-ignore
+            if (group.frequency === 'MONTHLY') {
+                const periodStart = new Date(start);
+                periodStart.setMonth(periodStart.getMonth() + (currentPeriod - 1));
+                const diffMs = now.getTime() - periodStart.getTime();
+                const daysSincePeriodStart = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+                if (subscription.collectionPattern === 'DAILY') {
+                    subInstallmentsInCurrentPeriod = Math.min(daysSincePeriodStart + 1, collectionFactor);
+                } else if (subscription.collectionPattern === 'WEEKLY') {
+                    subInstallmentsInCurrentPeriod = Math.min(Math.floor(daysSincePeriodStart / 7) + 1, collectionFactor);
+                }
+            // @ts-ignore
+            } else if (group.frequency === 'WEEKLY') {
+                if (subscription.collectionPattern === 'DAILY') {
+                    const periodStart = new Date(start);
+                    periodStart.setDate(periodStart.getDate() + (currentPeriod - 1) * 7);
+                    const diffMs = now.getTime() - periodStart.getTime();
+                    const daysSincePeriodStart = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+                    subInstallmentsInCurrentPeriod = Math.min(daysSincePeriodStart + 1, collectionFactor);
+                }
+            }
+            currentMemberInstallment = (completedGroupPeriods * collectionFactor) + subInstallmentsInCurrentPeriod;
+        } else {
+            currentMemberInstallment = currentPeriod;
+        }
+
         return withCors(
             NextResponse.json({
                 nextPeriod,
@@ -96,6 +138,12 @@ export async function GET(request: NextRequest) {
                 totalPeriods,
                 collectionFactor,
                 periods,
+                // Member-centric fields
+                nextMemberInstallment,
+                totalMemberInstallments,
+                completedMemberInstallments,
+                currentMemberInstallment,
+                collectionPattern: subscription.collectionPattern,
             }),
             origin
         );
