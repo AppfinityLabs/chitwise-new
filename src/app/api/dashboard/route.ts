@@ -6,7 +6,7 @@ import GroupMember from '@/models/GroupMember';
 import Collection from '@/models/Collection';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
-import { calculateOverdueAmount, calculateCurrentPeriod } from '@/lib/utils';
+import { calculateOverdueAmount } from '@/lib/utils';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -113,21 +113,15 @@ export async function GET(request: NextRequest) {
                 const group = sub.groupId as any;
                 if (!group) return null;
 
-                // Calculate only the CURRENT period's pending amount
-                const currentPeriod = calculateCurrentPeriod(group);
-                if (currentPeriod === 0) return null;
-
-                const contributionPerPeriod = group.contributionAmount * sub.units;
-                const totalExpectedByPreviousPeriod = (currentPeriod - 1) * contributionPerPeriod;
-                const paidForCurrentPeriod = Math.max(0, sub.totalCollected - totalExpectedByPreviousPeriod);
-                const currentPeriodPending = Math.max(0, Math.round((contributionPerPeriod - paidForCurrentPeriod) * 100) / 100);
+                // Use the same overdue calculation as stats.pendingDues
+                const overdueAmount = calculateOverdueAmount(group, sub);
 
                 return {
                     _id: sub._id,
                     memberId: sub.memberId,
                     groupId: { _id: group._id, groupName: group.groupName },
                     units: sub.units,
-                    pendingAmount: currentPeriodPending,
+                    pendingAmount: overdueAmount,
                     totalCollected: sub.totalCollected,
                     totalDue: sub.totalDue,
                     status: sub.status,
