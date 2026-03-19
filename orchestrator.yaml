@@ -1,0 +1,6 @@
+version: "1"
+name: my-app
+services:
+  - name: web
+    image: nginx:latest
+    port: 80
