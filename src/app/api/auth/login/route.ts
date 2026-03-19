@@ -9,7 +9,6 @@ export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
 }
 
-
 export async function POST(request: NextRequest) {
     const origin = request.headers.get('origin');
     await dbConnect();
