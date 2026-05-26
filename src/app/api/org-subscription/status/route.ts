@@ -5,7 +5,11 @@ import OrgInvoice from '@/models/OrgInvoice';
 import ChitGroup from '@/models/ChitGroup';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
-import { getCurrentBillingMonth } from '@/lib/subscriptionGate';
+
+function getCurrentBillingMonth(): Date {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+}
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
@@ -89,7 +93,8 @@ export async function GET(request: NextRequest) {
                 paidAt: currentInvoice.paidAt,
             } : null,
         }), origin);
-    } catch (error) {
-        return withCors(NextResponse.json({ error: 'Failed to fetch subscription status' }, { status: 500 }), origin);
+    } catch (error: any) {
+        console.error('Subscription status error:', error?.message || error);
+        return withCors(NextResponse.json({ error: 'Failed to fetch subscription status', details: error?.message }, { status: 500 }), origin);
     }
 }
