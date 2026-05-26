@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import OrgSubscription from '@/models/OrgSubscription';
 import OrgInvoice from '@/models/OrgInvoice';
 import ChitGroup from '@/models/ChitGroup';
+import '@/models/SubscriptionPlan';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 
