@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Organisation from '@/models/Organisation';
+import OrgSubscription from '@/models/OrgSubscription';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 
@@ -43,7 +44,23 @@ export async function POST(request: NextRequest) {
     await dbConnect();
     try {
         const body = await request.json();
-        const organisation = await Organisation.create(body);
+        const organisation = await Organisation.create({
+            ...body,
+            subscriptionPlan: 'TRIAL',
+            subscriptionStatus: 'TRIAL',
+            trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        });
+
+        // Auto-create trial subscription record
+        const trialStartDate = new Date();
+        const trialEndDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        await OrgSubscription.create({
+            organisationId: organisation._id,
+            status: 'TRIAL',
+            trialStartDate,
+            trialEndDate,
+        });
+
         return withCors(NextResponse.json(organisation, { status: 201 }), origin);
     } catch (error: any) {
         return withCors(NextResponse.json({

@@ -11,6 +11,10 @@ export interface IOrganisation extends Document {
     panNumber?: string;
     logo?: string;
     status: 'ACTIVE' | 'INACTIVE';
+    subscriptionPlan: 'BASIC' | 'PREMIUM' | 'TRIAL' | 'NONE';
+    subscriptionStatus: 'TRIAL' | 'ACTIVE' | 'EXPIRED' | 'NONE';
+    trialEndsAt: Date | null;
+    currentInvoiceStatus: 'PENDING' | 'PAID' | 'OVERDUE' | null;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -26,6 +30,10 @@ const OrganisationSchema = new Schema<IOrganisation>({
     panNumber: { type: String },
     logo: { type: String },
     status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
+    subscriptionPlan: { type: String, enum: ['BASIC', 'PREMIUM', 'TRIAL', 'NONE'], default: 'NONE' },
+    subscriptionStatus: { type: String, enum: ['TRIAL', 'ACTIVE', 'EXPIRED', 'NONE'], default: 'NONE' },
+    trialEndsAt: { type: Date, default: null },
+    currentInvoiceStatus: { type: String, enum: ['PENDING', 'PAID', 'OVERDUE', null], default: null },
 }, { timestamps: true });
 
 export default mongoose.models.Organisation || mongoose.model<IOrganisation>('Organisation', OrganisationSchema);
