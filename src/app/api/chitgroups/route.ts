@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import ChitGroup from '@/models/ChitGroup';
+import OrgSubscription from '@/models/OrgSubscription';
 import '@/models/Organisation'; // Required for populate
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
@@ -73,6 +74,21 @@ export async function POST(request: NextRequest) {
         } else if (user.role === 'SUPER_ADMIN') {
             if (!body.organisationId) {
                 return withCors(NextResponse.json({ error: 'Organisation ID is required for Super Admin' }, { status: 400 }), origin);
+            }
+        }
+
+        // Check group limit for Basic plan
+        const orgId = body.organisationId;
+        const subscription = await OrgSubscription.findOne({ organisationId: orgId });
+        if (subscription && subscription.planName === 'BASIC' && subscription.maxGroups) {
+            const activeGroupCount = await ChitGroup.countDocuments({ organisationId: orgId, status: 'ACTIVE' });
+            if (activeGroupCount >= subscription.maxGroups) {
+                return withCors(NextResponse.json({
+                    error: `Basic plan allows a maximum of ${subscription.maxGroups} active groups. Please upgrade to Premium for unlimited groups.`,
+                    limitReached: true,
+                    currentCount: activeGroupCount,
+                    maxGroups: subscription.maxGroups,
+                }, { status: 403 }), origin);
             }
         }
 

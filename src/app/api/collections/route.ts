@@ -6,6 +6,7 @@ import ChitGroup from '@/models/ChitGroup';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import { calculateCurrentPeriod } from '@/lib/utils';
+import { checkSubscriptionGate } from '@/lib/subscriptionGate';
 import mongoose from 'mongoose';
 import { notifyPaymentConfirmation } from '@/lib/eventNotifications';
 
@@ -72,6 +73,21 @@ export async function POST(request: NextRequest) {
     }
 
     await dbConnect();
+
+    // Subscription gate check
+    if (user.organisationId) {
+        const gate = await checkSubscriptionGate(user.organisationId);
+        if (!gate.allowed) {
+            return withCors(NextResponse.json({
+                error: gate.reason,
+                blocked: true,
+                status: gate.status,
+                invoiceAmount: gate.invoiceAmount,
+                dueDate: gate.dueDate,
+            }, { status: 402 }), origin);
+        }
+    }
+
     const session = await mongoose.startSession();
     session.startTransaction();
 
