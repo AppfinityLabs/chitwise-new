@@ -6,10 +6,12 @@ import { handleCorsOptions, withCors } from '@/lib/cors';
 import { getOrCreateCurrentInvoice } from '@/lib/subscriptionGate';
 import Razorpay from 'razorpay';
 
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID!,
-    key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+function getRazorpay() {
+    return new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID!,
+        key_secret: process.env.RAZORPAY_KEY_SECRET!,
+    });
+}
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create Razorpay order
-        const order = await razorpay.orders.create({
+        const order = await getRazorpay().orders.create({
             amount: invoice.totalAmount * 100, // Razorpay uses paise
             currency: 'INR',
             receipt: `inv_${invoice._id}`,
