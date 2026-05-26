@@ -3,7 +3,6 @@ import dbConnect from '@/lib/db';
 import OrgSubscription from '@/models/OrgSubscription';
 import OrgInvoice from '@/models/OrgInvoice';
 import ChitGroup from '@/models/ChitGroup';
-import '@/models/SubscriptionPlan';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 
@@ -30,8 +29,7 @@ export async function GET(request: NextRequest) {
     await dbConnect();
 
     try {
-        const subscription = await OrgSubscription.findOne({ organisationId: user.organisationId })
-            .populate('planId');
+        const subscription = await OrgSubscription.findOne({ organisationId: user.organisationId });
 
         if (!subscription) {
             return withCors(NextResponse.json({
