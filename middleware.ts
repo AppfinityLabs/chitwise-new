@@ -59,7 +59,7 @@ export async function middleware(request: NextRequest) {
 
     // Public routes that don't require authentication
     const publicRoutes = ['/login'];
-    const publicApiRoutes = ['/api/auth/login', '/api/seed', '/api/push/vapid-key', '/api/member/auth/login', '/api/member/auth/logout'];
+    const publicApiRoutes = ['/api/auth/login', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/seed', '/api/push/vapid-key', '/api/member/auth/login', '/api/member/auth/logout'];
 
     // Allow cron routes authenticated with CRON_SECRET (external cron services)
     if (pathname.startsWith('/api/cron/')) {
