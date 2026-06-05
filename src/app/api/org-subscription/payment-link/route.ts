@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
                 type: 'subscription_activation',
                 activeGroupCount: groupCount.toString(),
             },
-            callback_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://chitwise-admin-2j4dk.ondigitalocean.app'}/api/org-subscription/payment-link/callback?org=${organisationId}&plan=${planName}`,
+            callback_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://chitwise.appfinitylabs.com'}/api/org-subscription/payment-link/callback?org=${organisationId}&plan=${planName}`,
             callback_method: 'get',
         });
 
