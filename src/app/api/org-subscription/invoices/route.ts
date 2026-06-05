@@ -15,14 +15,18 @@ export async function GET(request: NextRequest) {
         return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
-    if (!user.organisationId) {
+    // Allow SUPER_ADMIN to query any org's invoices
+    const queryOrgId = request.nextUrl.searchParams.get('organisationId');
+    const targetOrgId = (user.role === 'SUPER_ADMIN' && queryOrgId) ? queryOrgId : user.organisationId;
+
+    if (!targetOrgId) {
         return withCors(NextResponse.json({ error: 'No organisation linked to user' }, { status: 400 }), origin);
     }
 
     await dbConnect();
 
     try {
-        const invoices = await OrgInvoice.find({ organisationId: user.organisationId })
+        const invoices = await OrgInvoice.find({ organisationId: targetOrgId })
             .sort({ billingMonth: -1 })
             .limit(12); // Last 12 months
 

@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrgSubscription from '@/models/OrgSubscription';
-import OrgInvoice from '@/models/OrgInvoice';
 import ChitGroup from '@/models/ChitGroup';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
-
-function getCurrentBillingMonth(): Date {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
-}
+import { getOrCreateCurrentInvoice } from '@/lib/subscriptionGate';
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
@@ -22,26 +17,32 @@ export async function GET(request: NextRequest) {
         return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
     }
 
-    if (!user.organisationId) {
+    // Allow SUPER_ADMIN to query any org's subscription
+    const queryOrgId = request.nextUrl.searchParams.get('organisationId');
+    const targetOrgId = (user.role === 'SUPER_ADMIN' && queryOrgId) ? queryOrgId : user.organisationId;
+
+    if (!targetOrgId) {
         return withCors(NextResponse.json({ error: 'No organisation linked to user' }, { status: 400 }), origin);
     }
 
     await dbConnect();
 
     try {
-        const subscription = await OrgSubscription.findOne({ organisationId: user.organisationId });
+        const subscription = await OrgSubscription.findOne({ organisationId: targetOrgId });
 
         if (!subscription) {
             return withCors(NextResponse.json({
                 status: 'NONE',
                 message: 'No subscription found',
                 isCollectionAllowed: false,
+                isTrialActive: false,
+                trialDaysRemaining: 0,
             }), origin);
         }
 
         const now = new Date();
         const activeGroupCount = await ChitGroup.countDocuments({
-            organisationId: user.organisationId,
+            organisationId: targetOrgId,
             status: 'ACTIVE',
         });
 
@@ -54,20 +55,19 @@ export async function GET(request: NextRequest) {
             return withCors(NextResponse.json({
                 status: 'TRIAL',
                 isCollectionAllowed: isTrialActive,
+                isTrialActive,
+                trialDaysRemaining: daysRemaining,
+                trialEndDate: trialEndsAt,
                 trialEndsAt,
                 daysRemaining,
                 activeGroupCount,
-                planName: null,
+                planName: subscription.planName,
                 currentInvoice: null,
             }), origin);
         }
 
-        // Active subscription — check invoice
-        const billingMonth = getCurrentBillingMonth();
-        const currentInvoice = await OrgInvoice.findOne({
-            organisationId: user.organisationId,
-            billingMonth,
-        });
+        // Active/Expired subscription — auto-generate invoice if needed
+        const currentInvoice = await getOrCreateCurrentInvoice(targetOrgId);
 
         let isCollectionAllowed = true;
         if (currentInvoice && currentInvoice.status !== 'PAID' && currentInvoice.status !== 'WAIVED') {
@@ -77,6 +77,8 @@ export async function GET(request: NextRequest) {
         return withCors(NextResponse.json({
             status: subscription.status,
             isCollectionAllowed,
+            isTrialActive: false,
+            trialDaysRemaining: 0,
             planName: subscription.planName,
             pricePerGroup: subscription.pricePerGroup,
             maxGroups: subscription.maxGroups,
@@ -89,6 +91,7 @@ export async function GET(request: NextRequest) {
                 totalAmount: currentInvoice.totalAmount,
                 status: currentInvoice.status,
                 dueDate: currentInvoice.dueDate,
+                graceEndDate: currentInvoice.graceEndDate,
                 paidAt: currentInvoice.paidAt,
             } : null,
         }), origin);

@@ -132,6 +132,13 @@ export default function OrganisationDetail() {
                     {/* Action Buttons */}
                     <div className="flex gap-2">
                         <Link
+                            href={`/organisations/${organisation._id}/subscription`}
+                            className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 transition-colors"
+                        >
+                            Subscription
+                        </Link>
+
+                        <Link
                             href={`/organisations/${organisation._id}/edit`}
                             className="px-4 py-2 rounded-lg text-sm font-medium bg-zinc-800/50 hover:bg-zinc-700/50 text-zinc-300 transition-colors"
                         >
