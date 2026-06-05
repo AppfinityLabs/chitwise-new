@@ -49,8 +49,9 @@ export default function SubscriptionManagement() {
     const [paymentNote, setPaymentNote] = useState('');
     const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const [linkPlan, setLinkPlan] = useState('');
+    const [linkMonths, setLinkMonths] = useState(1);
     const [linkLoading, setLinkLoading] = useState(false);
-    const [generatedLink, setGeneratedLink] = useState<{ url: string; amount: number; planName: string } | null>(null);
+    const [generatedLink, setGeneratedLink] = useState<{ url: string; amount: number; planName: string; months: number } | null>(null);
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
@@ -142,6 +143,7 @@ export default function SubscriptionManagement() {
                 body: JSON.stringify({
                     organisationId: orgId,
                     planName: linkPlan,
+                    months: linkMonths,
                 }),
             });
             const data = await res.json();
@@ -150,6 +152,7 @@ export default function SubscriptionManagement() {
                     url: data.paymentLink.short_url,
                     amount: data.paymentLink.amount,
                     planName: data.paymentLink.planName,
+                    months: data.paymentLink.months,
                 });
                 setMessage({ text: 'Payment link created! Share it with the client.', type: 'success' });
             } else {
@@ -316,6 +319,21 @@ export default function SubscriptionManagement() {
                         </select>
                     </div>
 
+                    <div>
+                        <label className="text-xs text-zinc-500 block mb-1">Duration</label>
+                        <select
+                            value={linkMonths}
+                            onChange={(e) => setLinkMonths(Number(e.target.value))}
+                            className="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value={1}>1 Month</option>
+                            <option value={2}>2 Months</option>
+                            <option value={3}>3 Months</option>
+                            <option value={6}>6 Months</option>
+                            <option value={12}>12 Months (1 Year)</option>
+                        </select>
+                    </div>
+
                     <button
                         onClick={handleCreatePaymentLink}
                         disabled={!linkPlan || linkLoading}
@@ -330,6 +348,7 @@ export default function SubscriptionManagement() {
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-sm text-emerald-400 font-medium">
                                 {generatedLink.planName} Plan — ₹{generatedLink.amount}
+                                {generatedLink.months > 1 ? ` (${generatedLink.months} months)` : ''}
                             </span>
                         </div>
                         <div className="flex items-center gap-2">

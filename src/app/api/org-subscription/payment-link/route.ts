@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     try {
-        const { organisationId, planName, description } = await request.json();
+        const { organisationId, planName, description, months = 1 } = await request.json();
 
         if (!organisationId) {
             return withCors(NextResponse.json({ error: 'organisationId is required' }, { status: 400 }), origin);
@@ -53,6 +53,8 @@ export async function POST(request: NextRequest) {
         if (!planName || !['BASIC', 'PREMIUM'].includes(planName)) {
             return withCors(NextResponse.json({ error: 'planName must be BASIC or PREMIUM' }, { status: 400 }), origin);
         }
+
+        const numMonths = Math.min(Math.max(Math.floor(Number(months)), 1), 12);
 
         // Get the plan details
         const plan = await SubscriptionPlan.findOne({ name: planName, status: 'ACTIVE' });
@@ -73,9 +75,10 @@ export async function POST(request: NextRequest) {
             status: 'ACTIVE',
         });
 
-        // Calculate amount: pricePerGroup × activeGroups (minimum 1 group for activation)
+        // Calculate amount: pricePerGroup × activeGroups × months
         const groupCount = Math.max(activeGroupCount, 1);
-        const amount = plan.pricePerGroup * groupCount;
+        const monthlyAmount = plan.pricePerGroup * groupCount;
+        const amount = monthlyAmount * numMonths;
 
         // Create Razorpay Payment Link
         const razorpay = getRazorpay();
@@ -83,7 +86,7 @@ export async function POST(request: NextRequest) {
             amount: amount * 100, // paise
             currency: 'INR',
             accept_partial: false,
-            description: description || `ChitWise ${plan.displayName} Plan - ${org.name}`,
+            description: description || `ChitWise ${plan.displayName} Plan - ${org.name} (${numMonths} month${numMonths > 1 ? 's' : ''})`,
             customer: {
                 name: org.name,
                 email: org.email || undefined,
@@ -100,8 +103,9 @@ export async function POST(request: NextRequest) {
                 planId: plan._id.toString(),
                 type: 'subscription_activation',
                 activeGroupCount: groupCount.toString(),
+                months: numMonths.toString(),
             },
-            callback_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://chitwise.appfinitylabs.com'}/api/org-subscription/payment-link/callback?org=${organisationId}&plan=${planName}`,
+            callback_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://chitwise.appfinitylabs.com'}/api/org-subscription/payment-link/callback?org=${organisationId}&plan=${planName}&months=${numMonths}`,
             callback_method: 'get',
         });
 
@@ -111,6 +115,8 @@ export async function POST(request: NextRequest) {
                 id: paymentLink.id,
                 short_url: paymentLink.short_url,
                 amount: amount,
+                monthlyAmount,
+                months: numMonths,
                 status: paymentLink.status,
                 planName,
                 orgName: org.name,

@@ -96,6 +96,10 @@ export async function POST(request: NextRequest) {
             if (notes.type === 'subscription_activation' && notes.organisationId && notes.planName) {
                 const plan = await SubscriptionPlan.findOne({ name: notes.planName, status: 'ACTIVE' });
                 if (plan) {
+                    const months = parseInt(notes.months || '1', 10);
+                    const now = new Date();
+                    const paidThroughDate = new Date(now.getFullYear(), now.getMonth() + months, 0);
+
                     await OrgSubscription.findOneAndUpdate(
                         { organisationId: notes.organisationId },
                         {
@@ -105,6 +109,7 @@ export async function POST(request: NextRequest) {
                             maxGroups: plan.maxGroups,
                             status: 'ACTIVE',
                             startDate: new Date(),
+                            paidThroughDate,
                         },
                         { upsert: false }
                     );
@@ -113,6 +118,15 @@ export async function POST(request: NextRequest) {
                         subscriptionPlan: plan.name,
                         subscriptionStatus: 'ACTIVE',
                     });
+
+                    // Mark current + future invoices as PAID
+                    for (let i = 0; i < months; i++) {
+                        const billingMonth = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                        await OrgInvoice.findOneAndUpdate(
+                            { organisationId: notes.organisationId, billingMonth },
+                            { status: 'PAID', paidAt: new Date() },
+                        );
+                    }
                 }
 
                 return NextResponse.json({ status: 'processed', action: 'plan_activated' });

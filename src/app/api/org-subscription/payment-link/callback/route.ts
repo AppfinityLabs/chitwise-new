@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrgSubscription from '@/models/OrgSubscription';
+import OrgInvoice from '@/models/OrgInvoice';
 import SubscriptionPlan from '@/models/SubscriptionPlan';
 import Organisation from '@/models/Organisation';
 
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl;
     const organisationId = searchParams.get('org');
     const planName = searchParams.get('plan');
+    const months = parseInt(searchParams.get('months') || '1', 10);
     const razorpayPaymentId = searchParams.get('razorpay_payment_id');
     const razorpayPaymentLinkId = searchParams.get('razorpay_payment_link_id');
     const razorpayPaymentLinkStatus = searchParams.get('razorpay_payment_link_status');
@@ -31,6 +33,10 @@ export async function GET(request: NextRequest) {
 
             const plan = await SubscriptionPlan.findOne({ name: planName, status: 'ACTIVE' });
             if (plan) {
+                // Calculate paid-through date (current month + months paid)
+                const now = new Date();
+                const paidThroughDate = new Date(now.getFullYear(), now.getMonth() + months, 0); // Last day of the last paid month
+
                 await OrgSubscription.findOneAndUpdate(
                     { organisationId },
                     {
@@ -40,6 +46,7 @@ export async function GET(request: NextRequest) {
                         maxGroups: plan.maxGroups,
                         status: 'ACTIVE',
                         startDate: new Date(),
+                        paidThroughDate,
                     },
                     { upsert: false }
                 );
@@ -48,10 +55,20 @@ export async function GET(request: NextRequest) {
                     subscriptionPlan: plan.name,
                     subscriptionStatus: 'ACTIVE',
                 });
+
+                // Mark current and future month invoices as PAID
+                for (let i = 0; i < months; i++) {
+                    const billingMonth = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                    await OrgInvoice.findOneAndUpdate(
+                        { organisationId, billingMonth },
+                        { status: 'PAID', paidAt: new Date() },
+                    );
+                }
             }
 
+            const monthText = months > 1 ? ` for ${months} months` : '';
             return new NextResponse(
-                renderHTML('Payment Successful!', `Your ${planName} plan has been activated. You can now continue using ChitWise.`),
+                renderHTML('Payment Successful!', `Your ${planName} plan has been activated${monthText}. You can now continue using ChitWise.`),
                 { headers: { 'Content-Type': 'text/html' } }
             );
         } catch (error) {

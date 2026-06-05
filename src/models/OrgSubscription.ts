@@ -10,6 +10,7 @@ export interface IOrgSubscription extends Document {
     trialStartDate: Date;
     trialEndDate: Date;
     startDate: Date | null;
+    paidThroughDate: Date | null;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -24,6 +25,7 @@ const OrgSubscriptionSchema = new Schema<IOrgSubscription>({
     trialStartDate: { type: Date, required: true },
     trialEndDate: { type: Date, required: true },
     startDate: { type: Date, default: null },
+    paidThroughDate: { type: Date, default: null },
 }, { timestamps: true });
 
 export default mongoose.models.OrgSubscription || mongoose.model<IOrgSubscription>('OrgSubscription', OrgSubscriptionSchema);

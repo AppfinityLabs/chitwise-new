@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import OrgInvoice from '@/models/OrgInvoice';
+import OrgSubscription from '@/models/OrgSubscription';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import { getOrCreateCurrentInvoice } from '@/lib/subscriptionGate';
@@ -31,6 +32,13 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     try {
+        // Parse optional months parameter from body
+        let months = 1;
+        try {
+            const body = await request.json();
+            months = Math.min(Math.max(Math.floor(Number(body.months) || 1), 1), 12);
+        } catch { /* no body or invalid JSON — default 1 month */ }
+
         // Get or create invoice for current month
         const invoice = await getOrCreateCurrentInvoice(user.organisationId);
 
@@ -38,42 +46,51 @@ export async function POST(request: NextRequest) {
             return withCors(NextResponse.json({ error: 'No invoice to pay. No active groups found.' }, { status: 400 }), origin);
         }
 
-        if (invoice.status === 'PAID') {
+        if (invoice.status === 'PAID' && months === 1) {
             return withCors(NextResponse.json({ error: 'Invoice already paid' }, { status: 400 }), origin);
         }
 
-        // If order already exists and is still valid, return it
-        if (invoice.razorpayOrderId) {
+        const totalAmount = invoice.totalAmount * months;
+
+        // If order already exists for single month and is still valid, return it
+        if (months === 1 && invoice.razorpayOrderId) {
             return withCors(NextResponse.json({
                 orderId: invoice.razorpayOrderId,
                 amount: invoice.totalAmount * 100, // paise
                 currency: 'INR',
                 invoiceId: invoice._id,
+                months: 1,
+                key: process.env.RAZORPAY_KEY_ID,
             }), origin);
         }
 
         // Create Razorpay order
         const order = await getRazorpay().orders.create({
-            amount: invoice.totalAmount * 100, // Razorpay uses paise
+            amount: totalAmount * 100, // Razorpay uses paise
             currency: 'INR',
-            receipt: `inv_${invoice._id}`,
+            receipt: `inv_${invoice._id}_${months}m`,
             notes: {
                 organisationId: user.organisationId.toString(),
                 invoiceId: invoice._id.toString(),
                 billingMonth: invoice.billingMonth.toISOString(),
+                months: months.toString(),
             },
         });
 
-        // Save order ID to invoice
-        invoice.razorpayOrderId = order.id;
-        await invoice.save();
+        // Save order ID to invoice (for single month)
+        if (months === 1) {
+            invoice.razorpayOrderId = order.id;
+            await invoice.save();
+        }
 
         return withCors(NextResponse.json({
             orderId: order.id,
             amount: order.amount,
             currency: order.currency,
             invoiceId: invoice._id,
-            key: process.env.RAZORPAY_KEY_ID, // Frontend needs this to open checkout
+            months,
+            monthlyAmount: invoice.totalAmount,
+            key: process.env.RAZORPAY_KEY_ID,
         }), origin);
     } catch (error: any) {
         console.error('Create order error:', error);

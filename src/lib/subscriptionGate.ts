@@ -40,6 +40,11 @@ export async function checkSubscriptionGate(organisationId: string | mongoose.Ty
         const now = new Date();
         const billingMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+        // If paid through a future date, allow without checking invoice
+        if (subscription.paidThroughDate && now <= new Date(subscription.paidThroughDate)) {
+            return { allowed: true };
+        }
+
         const invoice = await OrgInvoice.findOne({
             organisationId,
             billingMonth,
