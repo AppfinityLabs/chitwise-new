@@ -1,0 +1,43 @@
+name: chitwise-admin
+region: blr
+services:
+  - name: chitwise-web
+    github:
+      repo: AppfinityLabs/chitwise-new
+      branch: main
+      deploy_on_push: true
+    build_command: npm run build
+    run_command: npm run start
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    http_port: 3000
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        type: SECRET
+      - key: JWT_SECRET
+        type: SECRET
+      - key: JWT_EXPIRES_IN
+        value: "7d"
+      - key: CLOUDINARY_CLOUD_NAME
+        type: SECRET
+      - key: CLOUDINARY_API_KEY
+        type: SECRET
+      - key: CLOUDINARY_API_SECRET
+        type: SECRET
+      - key: VAPID_PUBLIC_KEY
+        type: SECRET
+      - key: VAPID_PRIVATE_KEY
+        type: SECRET
+      - key: VAPID_SUBJECT
+        value: "mailto:admin@chitwise.com"
+      - key: RAZORPAY_KEY_ID
+        type: SECRET
+      - key: RAZORPAY_KEY_SECRET
+        type: SECRET
+      - key: NEXT_PUBLIC_PWA_URL
+        value: "https://chitwise-pwa.vercel.app"
+      - key: NEXT_PUBLIC_MEMBER_PWA_URL
+        value: "https://chitwise-member.vercel.app"

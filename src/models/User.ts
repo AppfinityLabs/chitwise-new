@@ -4,6 +4,7 @@ export interface IUser extends Document {
     email: string;
     password: string;
     name: string;
+    phone?: string;
     role: 'SUPER_ADMIN' | 'ORG_ADMIN';
     organisationId?: mongoose.Types.ObjectId;
     status: 'ACTIVE' | 'INACTIVE';
@@ -30,6 +31,11 @@ const UserSchema = new Schema<IUser>(
             type: String,
             required: [true, 'Name is required'],
             trim: true
+        },
+        phone: {
+            type: String,
+            trim: true,
+            sparse: true
         },
         role: {
             type: String,
