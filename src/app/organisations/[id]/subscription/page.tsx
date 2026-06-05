@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, CheckCircle, XCircle, CreditCard, Gift } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle, XCircle, CreditCard, Gift, Link2, Copy, ExternalLink } from 'lucide-react';
 
 interface Subscription {
     _id: string;
@@ -48,6 +48,10 @@ export default function SubscriptionManagement() {
     const [selectedPlan, setSelectedPlan] = useState('');
     const [paymentNote, setPaymentNote] = useState('');
     const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+    const [linkPlan, setLinkPlan] = useState('');
+    const [linkLoading, setLinkLoading] = useState(false);
+    const [generatedLink, setGeneratedLink] = useState<{ url: string; amount: number; planName: string } | null>(null);
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -124,6 +128,46 @@ export default function SubscriptionManagement() {
     const handleMarkPaid = (invoiceId: string) => {
         if (!confirm('Mark this invoice as paid (cash/manual payment)?')) return;
         performAction('mark-paid', { invoiceId });
+    };
+
+    const handleCreatePaymentLink = async () => {
+        if (!linkPlan) return;
+        setLinkLoading(true);
+        setGeneratedLink(null);
+        setMessage(null);
+        try {
+            const res = await fetch('/api/org-subscription/payment-link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    organisationId: orgId,
+                    planName: linkPlan,
+                }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setGeneratedLink({
+                    url: data.paymentLink.short_url,
+                    amount: data.paymentLink.amount,
+                    planName: data.paymentLink.planName,
+                });
+                setMessage({ text: 'Payment link created! Share it with the client.', type: 'success' });
+            } else {
+                setMessage({ text: data.error || 'Failed to create link', type: 'error' });
+            }
+        } catch (error) {
+            setMessage({ text: 'Network error creating payment link', type: 'error' });
+        } finally {
+            setLinkLoading(false);
+        }
+    };
+
+    const copyLink = () => {
+        if (generatedLink) {
+            navigator.clipboard.writeText(generatedLink.url);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
     };
 
     if (loading) {
@@ -242,6 +286,81 @@ export default function SubscriptionManagement() {
                         {actionLoading ? 'Processing...' : 'Activate Plan'}
                     </button>
                 </div>
+            </div>
+
+            {/* Payment Link */}
+            <div className="glass-card p-6 mb-6">
+                <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+                    <Link2 size={14} className="inline mr-2" />
+                    Generate Payment Link
+                </h2>
+                <p className="text-zinc-500 text-sm mb-4">
+                    Create a Razorpay payment link and share with the client. Plan auto-activates on payment.
+                </p>
+
+                <div className="flex flex-wrap items-end gap-4">
+                    <div>
+                        <label className="text-xs text-zinc-500 block mb-1">Select Plan</label>
+                        <select
+                            value={linkPlan}
+                            onChange={(e) => setLinkPlan(e.target.value)}
+                            className="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="">Choose plan...</option>
+                            {plans.map((plan) => (
+                                <option key={plan._id} value={plan.name}>
+                                    {plan.name} — ₹{plan.pricePerGroup}/group
+                                    {plan.maxGroups ? ` (max ${plan.maxGroups})` : ' (unlimited)'}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <button
+                        onClick={handleCreatePaymentLink}
+                        disabled={!linkPlan || linkLoading}
+                        className="px-5 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {linkLoading ? 'Creating...' : 'Generate Link'}
+                    </button>
+                </div>
+
+                {generatedLink && (
+                    <div className="mt-4 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-emerald-400 font-medium">
+                                {generatedLink.planName} Plan — ₹{generatedLink.amount}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                readOnly
+                                value={generatedLink.url}
+                                className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm font-mono"
+                            />
+                            <button
+                                onClick={copyLink}
+                                className="px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
+                                title="Copy link"
+                            >
+                                {copied ? <CheckCircle size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                            </button>
+                            <a
+                                href={generatedLink.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
+                                title="Open link"
+                            >
+                                <ExternalLink size={16} />
+                            </a>
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-2">
+                            Share this link with the client. Once they pay, the plan will auto-activate.
+                        </p>
+                    </div>
+                )}
             </div>
 
             {/* Invoices */}

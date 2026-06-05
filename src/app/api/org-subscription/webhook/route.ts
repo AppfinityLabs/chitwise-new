@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import OrgInvoice from '@/models/OrgInvoice';
 import OrgSubscription from '@/models/OrgSubscription';
 import Organisation from '@/models/Organisation';
+import SubscriptionPlan from '@/models/SubscriptionPlan';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
@@ -85,6 +86,39 @@ export async function POST(request: NextRequest) {
             }
 
             return NextResponse.json({ status: 'processed' });
+        }
+
+        // Handle payment link paid events (for admin-created payment links)
+        if (eventType === 'payment_link.paid') {
+            const paymentLink = event.payload.payment_link.entity;
+            const notes = paymentLink.notes || {};
+
+            if (notes.type === 'subscription_activation' && notes.organisationId && notes.planName) {
+                const plan = await SubscriptionPlan.findOne({ name: notes.planName, status: 'ACTIVE' });
+                if (plan) {
+                    await OrgSubscription.findOneAndUpdate(
+                        { organisationId: notes.organisationId },
+                        {
+                            planId: plan._id,
+                            planName: plan.name,
+                            pricePerGroup: plan.pricePerGroup,
+                            maxGroups: plan.maxGroups,
+                            status: 'ACTIVE',
+                            startDate: new Date(),
+                        },
+                        { upsert: false }
+                    );
+
+                    await Organisation.findByIdAndUpdate(notes.organisationId, {
+                        subscriptionPlan: plan.name,
+                        subscriptionStatus: 'ACTIVE',
+                    });
+                }
+
+                return NextResponse.json({ status: 'processed', action: 'plan_activated' });
+            }
+
+            return NextResponse.json({ status: 'ignored', reason: 'payment_link without subscription notes' });
         }
 
         return NextResponse.json({ status: 'ignored', event: eventType });
