@@ -3,6 +3,11 @@ import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { comparePassword, signToken } from '@/lib/auth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { checkRateLimit, resetRateLimit, getClientIp } from '@/lib/rateLimit';
+
+// Allow up to 10 login attempts per IP+email every 15 minutes.
+const LOGIN_LIMIT = 10;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -21,6 +26,19 @@ export async function POST(request: NextRequest) {
         if (!email || !password) {
             return withCors(
                 NextResponse.json({ error: 'Email and password are required' }, { status: 400 }),
+                origin
+            );
+        }
+
+        // Rate limit by IP + email to throttle brute-force attempts
+        const rateKey = `login:${getClientIp(request)}:${String(email).toLowerCase()}`;
+        const rate = checkRateLimit(rateKey, LOGIN_LIMIT, LOGIN_WINDOW_MS);
+        if (!rate.allowed) {
+            return withCors(
+                NextResponse.json(
+                    { error: 'Too many login attempts. Please try again later.' },
+                    { status: 429, headers: { 'Retry-After': String(rate.retryAfterSec) } }
+                ),
                 origin
             );
         }
@@ -60,6 +78,9 @@ export async function POST(request: NextRequest) {
             role: user.role,
             organisationId: user.organisationId?.toString()
         });
+
+        // Successful login — clear the rate-limit counter for this key
+        resetRateLimit(rateKey);
 
         // Create response with user data (excluding password)
         const userData = {

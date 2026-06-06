@@ -4,7 +4,7 @@ import Notification from '@/models/Notification';
 import PushSubscription from '@/models/PushSubscription';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
-import { sendToSubscription, isPushConfigured, PushPayload } from '@/lib/pushService';
+import { isPushConfigured, PushPayload } from '@/lib/pushService';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -193,12 +193,14 @@ export async function sendNotificationToTargets(notification: any): Promise<{ se
     let sent = 0;
     let failed = 0;
 
+    const { deliverToSubscription } = await import('@/lib/pushService');
+
     // Send in parallel batches of 10
     const batchSize = 10;
     for (let i = 0; i < subscriptions.length; i += batchSize) {
         const batch = subscriptions.slice(i, i + batchSize);
         const results = await Promise.allSettled(
-            batch.map(sub => sendToSubscription(sub.subscription, payload))
+            batch.map(sub => deliverToSubscription(sub, payload))
         );
         for (const result of results) {
             if (result.status === 'fulfilled' && result.value) {

@@ -257,3 +257,35 @@ export function calculatePaymentStatus(group: GroupInfo, subscription: SubInfo):
 
     return 'ALL_CLEAR';
 }
+
+/**
+ * Calculate the date at which a group's final period ends (i.e. the moment the
+ * chit is fully complete). This is the start of the period AFTER the last one.
+ */
+export function calculateGroupEndDate(group: {
+    startDate: Date | string;
+    frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+    totalPeriods: number;
+}): Date {
+    const d = new Date(group.startDate);
+    if (group.frequency === 'DAILY') {
+        d.setDate(d.getDate() + group.totalPeriods);
+    } else if (group.frequency === 'WEEKLY') {
+        d.setDate(d.getDate() + group.totalPeriods * 7);
+    } else {
+        d.setMonth(d.getMonth() + group.totalPeriods);
+    }
+    return d;
+}
+
+/**
+ * Returns true once every period of the group has fully elapsed — used to
+ * auto-close completed chit groups.
+ */
+export function isGroupComplete(group: {
+    startDate: Date | string;
+    frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+    totalPeriods: number;
+}): boolean {
+    return new Date() >= calculateGroupEndDate(group);
+}

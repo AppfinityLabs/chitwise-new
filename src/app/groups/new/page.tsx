@@ -50,6 +50,35 @@ export default function NewGroupPage() {
 
     const orgList = Array.isArray(organisations) ? organisations : [];
 
+    // Group creation is an Org Admin responsibility. Super Admin has read-only oversight.
+    if (user?.role === 'SUPER_ADMIN') {
+        return (
+            <div className="max-w-2xl mx-auto">
+                <h1 className="text-3xl font-bold text-white mb-8">Create New Group</h1>
+                <div className="glass-card p-8 space-y-4 text-center">
+                    <div className="flex justify-center">
+                        <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center">
+                            <Building2 size={26} className="text-indigo-400" />
+                        </div>
+                    </div>
+                    <h2 className="text-xl font-semibold text-white">Group creation is managed by Organisation Admins</h2>
+                    <p className="text-zinc-400 text-sm max-w-md mx-auto">
+                        As a Super Admin you have read-only oversight across all organisations.
+                        Creating and editing chit groups is handled by each organisation&apos;s admin.
+                    </p>
+                    <div className="pt-2">
+                        <button
+                            onClick={() => router.push('/groups')}
+                            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
+                        >
+                            Back to Groups
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-2xl mx-auto">
             <h1 className="text-3xl font-bold text-white mb-8">Create New Group</h1>

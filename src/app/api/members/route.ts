@@ -4,6 +4,7 @@ import Member from '@/models/Member';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import { hashPassword } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -65,9 +66,32 @@ export async function POST(request: NextRequest) {
             body.pin = await hashPassword(body.pin);
         }
 
+        // Prevent duplicate phone numbers within the same organisation
+        if (body.phone) {
+            const existing = await Member.findOne({ phone: body.phone, organisationId: body.organisationId });
+            if (existing) {
+                return withCors(
+                    NextResponse.json({ error: 'A member with this phone number already exists in this organisation' }, { status: 409 }),
+                    origin
+                );
+            }
+        }
+
         const member = await Member.create(body);
+        await logAudit(user, {
+            action: 'CREATE',
+            entity: 'Member',
+            entityId: String(member._id),
+            summary: `Created member ${member.name} (${member.phone})`,
+        });
         return withCors(NextResponse.json(member, { status: 201 }), origin);
     } catch (error: any) {
+        if (error?.code === 11000) {
+            return withCors(
+                NextResponse.json({ error: 'A member with this phone number already exists in this organisation' }, { status: 409 }),
+                origin
+            );
+        }
         return withCors(NextResponse.json({ error: 'Failed to create member', details: error.message }, { status: 400 }), origin);
     }
 }

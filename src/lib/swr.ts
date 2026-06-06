@@ -12,6 +12,7 @@ import {
     organisationsApi,
     usersApi,
     notificationsApi,
+    type ReportFilters,
 } from './api';
 
 // =============================================================================
@@ -57,7 +58,17 @@ export const CACHE_KEYS = {
         if (!filters?.groupId) return base;
         return `${base}?groupId=${filters.groupId}`;
     },
-    REPORTS: '/reports',
+    REPORTS: (filters?: ReportFilters) => {
+        const base = '/reports';
+        if (!filters) return base;
+        const p: Record<string, string> = {};
+        if (filters.startDate) p.startDate = filters.startDate;
+        if (filters.endDate) p.endDate = filters.endDate;
+        if (filters.groupId) p.groupId = filters.groupId;
+        if (filters.paymentMode) p.paymentMode = filters.paymentMode;
+        const q = new URLSearchParams(p).toString();
+        return q ? `${base}?${q}` : base;
+    },
     ORGANISATIONS: '/organisations',
     ORGANISATION: (id: string) => `/organisations/${id}`,
     USERS: '/users',
@@ -125,8 +136,8 @@ export function useWinners(filters?: { groupId?: string }) {
 // =============================================================================
 // Reports Hook
 // =============================================================================
-export function useReports() {
-    return useSWR(CACHE_KEYS.REPORTS, () => reportsApi.get(), swrConfig);
+export function useReports(filters?: ReportFilters) {
+    return useSWR(CACHE_KEYS.REPORTS(filters), () => reportsApi.get(filters), swrConfig);
 }
 
 // =============================================================================

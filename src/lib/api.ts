@@ -45,6 +45,19 @@ export const authApi = {
         api<{ user: any }>('/api/auth/login', { method: 'POST', body: { email, password } }),
     logout: () => api('/api/auth/logout', { method: 'POST' }),
     me: () => api<any>('/api/auth/me'),
+    changePassword: (currentPassword: string, newPassword: string) =>
+        api<{ message: string }>('/api/auth/change-password', {
+            method: 'POST',
+            body: { currentPassword, newPassword },
+        }),
+};
+
+// =============================================================================
+// App Settings API (Super Admin only)
+// =============================================================================
+export const settingsApi = {
+    get: () => api<any>('/api/settings'),
+    update: (data: any) => api<any>('/api/settings', { method: 'PUT', body: data }),
 };
 
 // =============================================================================
@@ -144,15 +157,52 @@ export const winnersApi = {
 // =============================================================================
 // Reports API
 // =============================================================================
+export interface ReportFilters {
+    startDate?: string;
+    endDate?: string;
+    groupId?: string;
+    paymentMode?: string;
+}
+
+function reportQuery(filters?: ReportFilters): string {
+    if (!filters) return '';
+    const params = new URLSearchParams();
+    if (filters.startDate) params.set('startDate', filters.startDate);
+    if (filters.endDate) params.set('endDate', filters.endDate);
+    if (filters.groupId) params.set('groupId', filters.groupId);
+    if (filters.paymentMode) params.set('paymentMode', filters.paymentMode);
+    const q = params.toString();
+    return q ? `?${q}` : '';
+}
+
 export const reportsApi = {
-    get: () =>
+    get: (filters?: ReportFilters) =>
         api<{
+            filters: ReportFilters;
             trends: any[];
             distribution: any[];
             paymentModeStats: any[];
             recentTransactions: any[];
             groupPerformance: any[];
-        }>('/api/reports'),
+            defaulters: any[];
+            groups: { _id: string; groupName: string }[];
+            summary: {
+                totalCollected: number;
+                totalOutstanding: number;
+                activeMembers: number;
+                activeGroups: number;
+                defaulterCount: number;
+            };
+        }>(`/api/reports${reportQuery(filters)}`),
+    exportUrl: (format: 'csv' | 'excel' | 'pdf', filters?: ReportFilters) => {
+        const params = new URLSearchParams();
+        params.set('format', format);
+        if (filters?.startDate) params.set('startDate', filters.startDate);
+        if (filters?.endDate) params.set('endDate', filters.endDate);
+        if (filters?.groupId) params.set('groupId', filters.groupId);
+        if (filters?.paymentMode) params.set('paymentMode', filters.paymentMode);
+        return `/api/reports/export?${params.toString()}`;
+    },
 };
 
 // =============================================================================

@@ -6,6 +6,7 @@ import '@/models/Organisation'; // Required for populate
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import { calculateCurrentPeriod } from '@/lib/utils';
+import { logAudit } from '@/lib/audit';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -65,17 +66,17 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
-        // Scope to Organisation
-        if (user.role === 'ORG_ADMIN') {
-            if (!user.organisationId) {
-                return withCors(NextResponse.json({ error: 'User not linked to an organisation' }, { status: 400 }), origin);
-            }
-            body.organisationId = user.organisationId;
-        } else if (user.role === 'SUPER_ADMIN') {
-            if (!body.organisationId) {
-                return withCors(NextResponse.json({ error: 'Organisation ID is required for Super Admin' }, { status: 400 }), origin);
-            }
+        // Group creation is an Org Admin responsibility. Super Admin has
+        // read-only oversight and cannot create groups on behalf of an org.
+        if (user.role !== 'ORG_ADMIN') {
+            return withCors(NextResponse.json({
+                error: 'Group creation is restricted to Organisation Admins.'
+            }, { status: 403 }), origin);
         }
+        if (!user.organisationId) {
+            return withCors(NextResponse.json({ error: 'User not linked to an organisation' }, { status: 400 }), origin);
+        }
+        body.organisationId = user.organisationId;
 
         // Check group limit for Basic plan
         const orgId = body.organisationId;
@@ -93,6 +94,12 @@ export async function POST(request: NextRequest) {
         }
 
         const group = await ChitGroup.create(body);
+        await logAudit(user, {
+            action: 'CREATE',
+            entity: 'ChitGroup',
+            entityId: String(group._id),
+            summary: `Created chit group ${group.groupName}`,
+        });
         return withCors(NextResponse.json(group, { status: 201 }), origin);
     } catch (error: any) {
         return withCors(NextResponse.json({ error: 'Failed to create group', details: error.message }, { status: 400 }), origin);

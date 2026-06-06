@@ -2,6 +2,7 @@ import webpush from 'web-push';
 import PushSubscription from '@/models/PushSubscription';
 import GroupMember from '@/models/GroupMember';
 import dbConnect from './db';
+import { sendFcmToToken, isFcmConfigured } from './firebaseAdmin';
 
 // Configure VAPID
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
@@ -65,7 +66,34 @@ export async function sendToSubscription(
 }
 
 /**
- * Send push notification to all devices for a specific user
+ * Deliver a payload to a single subscription document, routing to the right
+ * transport: web-push (browser) or FCM (Flutter mobile app). Handles pruning
+ * of invalid/expired subscriptions.
+ */
+export async function deliverToSubscription(
+    sub: any,
+    payload: PushPayload
+): Promise<boolean> {
+    // Mobile (Flutter) subscription → FCM
+    if (sub.platform === 'flutter' || sub.fcmToken) {
+        if (!sub.fcmToken) return false;
+        const result = await sendFcmToToken(sub.fcmToken, payload);
+        if (result.invalidToken) {
+            await PushSubscription.deleteOne({ _id: sub._id });
+        }
+        return result.success;
+    }
+
+    // Web-push (browser) subscription
+    if (sub.subscription?.endpoint) {
+        return sendToSubscription(sub.subscription, payload);
+    }
+
+    return false;
+}
+
+/**
+ * Send push notification to all subscriptions belonging to a user
  */
 export async function sendToUser(
     userId: string,
@@ -78,7 +106,7 @@ export async function sendToUser(
     let failed = 0;
 
     for (const sub of subscriptions) {
-        const success = await sendToSubscription(sub.subscription, payload);
+        const success = await deliverToSubscription(sub, payload);
         if (success) {
             sent++;
             // Update last used timestamp
@@ -106,7 +134,7 @@ export async function sendToOrganisation(
     let failed = 0;
 
     for (const sub of subscriptions) {
-        const success = await sendToSubscription(sub.subscription, payload);
+        const success = await deliverToSubscription(sub, payload);
         if (success) {
             sent++;
             sub.lastUsed = new Date();
@@ -127,10 +155,10 @@ export function getVapidPublicKey(): string {
 }
 
 /**
- * Check if push notifications are configured
+ * Check if push notifications are configured (either web-push or FCM)
  */
 export function isPushConfigured(): boolean {
-    return Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
+    return Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) || isFcmConfigured();
 }
 
 /**
@@ -147,7 +175,7 @@ export async function sendToMember(
     let failed = 0;
 
     for (const sub of subscriptions) {
-        const success = await sendToSubscription(sub.subscription, payload);
+        const success = await deliverToSubscription(sub, payload);
         if (success) {
             sent++;
             sub.lastUsed = new Date();
@@ -180,7 +208,7 @@ export async function sendToGroup(
     let failed = 0;
 
     for (const sub of subscriptions) {
-        const success = await sendToSubscription(sub.subscription, payload);
+        const success = await deliverToSubscription(sub, payload);
         if (success) {
             sent++;
             sub.lastUsed = new Date();

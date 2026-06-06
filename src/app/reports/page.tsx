@@ -1,37 +1,40 @@
 'use client';
 
+import { useState } from 'react';
 import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
-import { Download, TrendingUp, Users, CreditCard, Activity } from 'lucide-react';
+import { Download, TrendingUp, Users, CreditCard, Activity, AlertTriangle, Filter, X, ChevronDown, FileText, FileSpreadsheet } from 'lucide-react';
 import { useReports } from '@/lib/swr';
+import { reportsApi, type ReportFilters } from '@/lib/api';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const PAYMENT_MODES = ['CASH', 'UPI', 'CHEQUE', 'BANK_TRANSFER'];
 
 export default function ReportsPage() {
-    const { data, isLoading } = useReports();
+    const [filters, setFilters] = useState<ReportFilters>({});
+    const [exportOpen, setExportOpen] = useState(false);
+    const { data, isLoading } = useReports(filters);
 
-    const exportCSV = () => {
-        if (!data) return;
-        const rows = [
-            ['Report Type', 'Name', 'Value/Amount'],
-            ...data.trends.map((t: any) => ['Trend', t.name, t.amount]),
-            ...data.distribution.map((d: any) => ['Distribution', d.name, d.value]),
-            ...data.paymentModeStats.map((p: any) => ['Payment Mode', p.name, p.value])
-        ];
+    const updateFilter = (key: keyof ReportFilters, value: string) => {
+        setFilters((prev) => ({ ...prev, [key]: value || undefined }));
+    };
 
-        const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "chitwise_report.csv");
+    const clearFilters = () => setFilters({});
+    const hasFilters = !!(filters.startDate || filters.endDate || filters.groupId || filters.paymentMode);
+
+    const triggerExport = (format: 'csv' | 'excel' | 'pdf') => {
+        setExportOpen(false);
+        const url = reportsApi.exportUrl(format, filters);
+        const link = document.createElement('a');
+        link.href = url;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
-    if (isLoading) {
+    if (isLoading && !data) {
         return (
             <div className="space-y-8">
                 <div className="flex justify-between items-center">
@@ -49,10 +52,11 @@ export default function ReportsPage() {
         );
     }
 
-    const totalCollected = data?.trends?.reduce((acc: number, curr: any) => acc + curr.amount, 0) || 0;
-    const totalMembers = data?.distribution?.reduce((acc: number, curr: any) => acc + curr.value, 0) || 0;
-
     if (!data) return null;
+
+    const summary = data.summary;
+    const topMode = [...(data.paymentModeStats || [])].sort((a, b) => b.value - a.value)[0]?.name || 'N/A';
+    const inputClass = 'bg-zinc-900/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50';
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -62,13 +66,66 @@ export default function ReportsPage() {
                     <h1 className="text-3xl font-bold text-white tracking-tight">Analytics Dashboard</h1>
                     <p className="text-zinc-400 mt-1">Real-time insights into your fund performance</p>
                 </div>
-                <button
-                    onClick={exportCSV}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-all shadow-lg hover:shadow-indigo-500/20 active:scale-95"
-                >
-                    <Download size={16} />
-                    <span>Export CSV</span>
-                </button>
+                <div className="relative">
+                    <button
+                        onClick={() => setExportOpen((o) => !o)}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-all shadow-lg hover:shadow-indigo-500/20 active:scale-95"
+                    >
+                        <Download size={16} />
+                        <span>Export</span>
+                        <ChevronDown size={14} />
+                    </button>
+                    {exportOpen && (
+                        <>
+                            <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
+                            <div className="absolute right-0 mt-2 w-44 glass-card p-1 z-20">
+                                <button onClick={() => triggerExport('csv')} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 rounded-lg transition-colors">
+                                    <FileText size={15} className="text-emerald-400" /> CSV
+                                </button>
+                                <button onClick={() => triggerExport('excel')} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 rounded-lg transition-colors">
+                                    <FileSpreadsheet size={15} className="text-green-400" /> Excel (.xlsx)
+                                </button>
+                                <button onClick={() => triggerExport('pdf')} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 rounded-lg transition-colors">
+                                    <FileText size={15} className="text-rose-400" /> PDF
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* Filter Bar */}
+            <div className="glass-card p-4 flex flex-wrap items-end gap-4">
+                <div className="flex items-center gap-2 text-zinc-400 text-sm font-medium">
+                    <Filter size={16} /> Filters
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs text-zinc-500">From</label>
+                    <input type="date" value={filters.startDate || ''} onChange={(e) => updateFilter('startDate', e.target.value)} className={inputClass} />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs text-zinc-500">To</label>
+                    <input type="date" value={filters.endDate || ''} onChange={(e) => updateFilter('endDate', e.target.value)} className={inputClass} />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs text-zinc-500">Group</label>
+                    <select value={filters.groupId || ''} onChange={(e) => updateFilter('groupId', e.target.value)} className={inputClass}>
+                        <option value="">All Groups</option>
+                        {data.groups?.map((g) => <option key={g._id} value={g._id}>{g.groupName}</option>)}
+                    </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs text-zinc-500">Payment Mode</label>
+                    <select value={filters.paymentMode || ''} onChange={(e) => updateFilter('paymentMode', e.target.value)} className={inputClass}>
+                        <option value="">All Modes</option>
+                        {PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                </div>
+                {hasFilters && (
+                    <button onClick={clearFilters} className="flex items-center gap-1.5 px-3 py-2 text-sm text-zinc-400 hover:text-white border border-white/10 rounded-lg hover:bg-white/5 transition-colors">
+                        <X size={14} /> Clear
+                    </button>
+                )}
             </div>
 
             {/* KPI Cards */}
@@ -77,7 +134,7 @@ export default function ReportsPage() {
                     <div className="flex justify-between items-start">
                         <div>
                             <p className="text-zinc-400 text-sm font-medium uppercase tracking-wider">Total Collection</p>
-                            <h3 className="text-2xl font-bold text-white mt-1">₹ {totalCollected.toLocaleString()}</h3>
+                            <h3 className="text-2xl font-bold text-white mt-1">₹ {summary.totalCollected.toLocaleString()}</h3>
                         </div>
                         <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
                             <TrendingUp size={20} />
@@ -88,7 +145,7 @@ export default function ReportsPage() {
                     <div className="flex justify-between items-start">
                         <div>
                             <p className="text-zinc-400 text-sm font-medium uppercase tracking-wider">Active Members</p>
-                            <h3 className="text-2xl font-bold text-white mt-1">{totalMembers}</h3>
+                            <h3 className="text-2xl font-bold text-white mt-1">{summary.activeMembers}</h3>
                         </div>
                         <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
                             <Users size={20} />
@@ -99,7 +156,7 @@ export default function ReportsPage() {
                     <div className="flex justify-between items-start">
                         <div>
                             <p className="text-zinc-400 text-sm font-medium uppercase tracking-wider">Active Groups</p>
-                            <h3 className="text-2xl font-bold text-white mt-1">{data?.distribution?.length || 0}</h3>
+                            <h3 className="text-2xl font-bold text-white mt-1">{summary.activeGroups}</h3>
                         </div>
                         <div className="p-2 bg-amber-500/10 rounded-lg text-amber-400">
                             <Activity size={20} />
@@ -109,10 +166,9 @@ export default function ReportsPage() {
                 <div className="glass-card p-6 border-l-4 border-rose-500">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-zinc-400 text-sm font-medium uppercase tracking-wider">Top Mode</p>
-                            <h3 className="text-xl font-bold text-white mt-1">
-                                {data?.paymentModeStats?.sort((a: any, b: any) => b.value - a.value)[0]?.name || 'N/A'}
-                            </h3>
+                            <p className="text-zinc-400 text-sm font-medium uppercase tracking-wider">Outstanding</p>
+                            <h3 className="text-2xl font-bold text-white mt-1">₹ {summary.totalOutstanding.toLocaleString()}</h3>
+                            <p className="text-xs text-zinc-500 mt-0.5">{summary.defaulterCount} defaulters · Top mode: {topMode}</p>
                         </div>
                         <div className="p-2 bg-rose-500/10 rounded-lg text-rose-400">
                             <CreditCard size={20} />
@@ -254,6 +310,52 @@ export default function ReportsPage() {
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            {/* Defaulter Report */}
+            <div className="glass-card p-6 overflow-hidden">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <AlertTriangle size={18} className="text-rose-400" />
+                        Defaulters / Overdue Members
+                    </h3>
+                    <span className="text-xs text-rose-300 bg-rose-500/10 px-2 py-1 rounded">{data.defaulters?.length || 0} members</span>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-zinc-400">
+                        <thead className="bg-zinc-900/50 text-zinc-300 font-medium">
+                            <tr>
+                                <th className="p-3">Member</th>
+                                <th className="p-3">Phone</th>
+                                <th className="p-3">Group</th>
+                                <th className="p-3 text-right">Total Due</th>
+                                <th className="p-3 text-right">Collected</th>
+                                <th className="p-3 text-right">Pending</th>
+                                <th className="p-3 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data.defaulters?.length === 0 && (
+                                <tr><td colSpan={7} className="p-6 text-center text-zinc-500">No outstanding dues 🎉</td></tr>
+                            )}
+                            {data.defaulters?.map((d: any) => (
+                                <tr key={d._id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                    <td className="p-3 font-medium text-white">{d.memberName}</td>
+                                    <td className="p-3">{d.memberPhone || '—'}</td>
+                                    <td className="p-3">{d.groupName}</td>
+                                    <td className="p-3 text-right">₹ {d.totalDue.toLocaleString()}</td>
+                                    <td className="p-3 text-right text-emerald-400">₹ {d.totalCollected.toLocaleString()}</td>
+                                    <td className="p-3 text-right font-bold text-rose-400">₹ {d.pendingAmount.toLocaleString()}</td>
+                                    <td className="p-3 text-center">
+                                        <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${d.status === 'DEFAULTED' ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                                            {d.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

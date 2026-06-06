@@ -23,6 +23,32 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { subscription, userAgent } = body;
 
+        // Mobile (Flutter) subscription via FCM token
+        if (subscription && subscription.fcmToken) {
+            const result = await PushSubscription.findOneAndUpdate(
+                { fcmToken: subscription.fcmToken },
+                {
+                    userId: user.userId,
+                    organisationId: user.organisationId,
+                    platform: 'flutter',
+                    fcmToken: subscription.fcmToken,
+                    userAgent,
+                    lastUsed: new Date()
+                },
+                { upsert: true, new: true }
+            );
+
+            return withCors(
+                NextResponse.json({
+                    success: true,
+                    message: 'Subscription saved',
+                    id: result._id
+                }),
+                origin
+            );
+        }
+
+        // Web-push (browser) subscription
         if (!subscription || !subscription.endpoint || !subscription.keys) {
             return withCors(
                 NextResponse.json({ error: 'Invalid subscription data' }, { status: 400 }),
@@ -36,6 +62,7 @@ export async function POST(request: NextRequest) {
             {
                 userId: user.userId,
                 organisationId: user.organisationId,
+                platform: 'web',
                 subscription: {
                     endpoint: subscription.endpoint,
                     keys: {
@@ -89,7 +116,10 @@ export async function DELETE(request: NextRequest) {
 
         await PushSubscription.deleteOne({
             userId: user.userId,
-            'subscription.endpoint': endpoint
+            $or: [
+                { 'subscription.endpoint': endpoint },
+                { fcmToken: endpoint }
+            ]
         });
 
         return withCors(

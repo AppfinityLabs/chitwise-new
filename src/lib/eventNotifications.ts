@@ -3,12 +3,25 @@ import Member from '@/models/Member';
 import ChitGroup from '@/models/ChitGroup';
 import GroupMember from '@/models/GroupMember';
 import { sendToMember, interpolateTemplate, isPushConfigured } from '@/lib/pushService';
+import { sendEmail, isEmailConfigured } from '@/lib/emailService';
 
 /**
  * Fire-and-forget event-driven notification helpers.
  * These should be called after successful DB operations
  * — they catch all errors internally so they never break the parent request.
  */
+
+/** Send an email to a member by id, if email is configured and the member has an address. */
+async function emailMember(memberId: string, subject: string, text: string) {
+    if (!isEmailConfigured()) return;
+    try {
+        const member: any = await Member.findById(memberId).select('email name').lean();
+        if (!member?.email) return;
+        await sendEmail({ to: member.email, subject, text });
+    } catch (e) {
+        console.error('Member email notification failed:', e);
+    }
+}
 
 /** Notify a member that their payment was recorded */
 export async function notifyPaymentConfirmation(opts: {
@@ -19,18 +32,21 @@ export async function notifyPaymentConfirmation(opts: {
     amountPaid: number;
     periodNumber: number;
 }) {
+    const body = interpolateTemplate(
+        'Your payment of ₹{{amount}} for "{{groupName}}" (Period {{period}}) has been recorded. Thank you!',
+        {
+            amount: opts.amountPaid.toLocaleString('en-IN'),
+            groupName: opts.groupName,
+            period: opts.periodNumber,
+        }
+    );
+
+    // Email is independent of push configuration
+    emailMember(opts.memberId, 'Payment Confirmed', body).catch(() => {});
+
     if (!isPushConfigured()) return;
 
     try {
-        const body = interpolateTemplate(
-            'Your payment of ₹{{amount}} for "{{groupName}}" (Period {{period}}) has been recorded. Thank you!',
-            {
-                amount: opts.amountPaid.toLocaleString('en-IN'),
-                groupName: opts.groupName,
-                period: opts.periodNumber,
-            }
-        );
-
         const notif = await Notification.create({
             title: 'Payment Confirmed',
             body,
@@ -68,19 +84,21 @@ export async function notifyWinnerAnnouncement(opts: {
     prizeAmount: number;
     periodNumber: number;
 }) {
+    const body = interpolateTemplate(
+        'Congratulations {{memberName}}! 🎉 You won the chit prize of ₹{{prize}} for "{{groupName}}" (Period {{period}}).',
+        {
+            memberName: opts.memberName,
+            prize: opts.prizeAmount.toLocaleString('en-IN'),
+            groupName: opts.groupName,
+            period: opts.periodNumber,
+        }
+    );
+
+    emailMember(opts.memberId, '🏆 You Won the Chit!', body).catch(() => {});
+
     if (!isPushConfigured()) return;
 
     try {
-        const body = interpolateTemplate(
-            'Congratulations {{memberName}}! 🎉 You won the chit prize of ₹{{prize}} for "{{groupName}}" (Period {{period}}).',
-            {
-                memberName: opts.memberName,
-                prize: opts.prizeAmount.toLocaleString('en-IN'),
-                groupName: opts.groupName,
-                period: opts.periodNumber,
-            }
-        );
-
         const notif = await Notification.create({
             title: '🏆 You Won the Chit!',
             body,
@@ -118,18 +136,20 @@ export async function notifyEnrollment(opts: {
     units: number;
     totalDue: number;
 }) {
+    const body = interpolateTemplate(
+        'You have been enrolled in "{{groupName}}" with {{units}} unit(s). Total contribution: ₹{{totalDue}}.',
+        {
+            groupName: opts.groupName,
+            units: opts.units,
+            totalDue: opts.totalDue.toLocaleString('en-IN'),
+        }
+    );
+
+    emailMember(opts.memberId, 'Group Enrollment', body).catch(() => {});
+
     if (!isPushConfigured()) return;
 
     try {
-        const body = interpolateTemplate(
-            'You have been enrolled in "{{groupName}}" with {{units}} unit(s). Total contribution: ₹{{totalDue}}.',
-            {
-                groupName: opts.groupName,
-                units: opts.units,
-                totalDue: opts.totalDue.toLocaleString('en-IN'),
-            }
-        );
-
         const notif = await Notification.create({
             title: 'Group Enrollment',
             body,

@@ -129,6 +129,13 @@ export async function PUT(
         const { id } = await params;
         const body = await request.json();
 
+        // Group editing is an Org Admin responsibility (read-only for others)
+        if (user.role !== 'ORG_ADMIN') {
+            return withCors(NextResponse.json({
+                error: 'Group editing is restricted to Organisation Admins.'
+            }, { status: 403 }), origin);
+        }
+
         // Check if group exists
         const group = await ChitGroup.findById(id);
         if (!group) {

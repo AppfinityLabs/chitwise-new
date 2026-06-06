@@ -9,6 +9,7 @@ import { calculateCurrentPeriod } from '@/lib/utils';
 import { checkSubscriptionGate } from '@/lib/subscriptionGate';
 import mongoose from 'mongoose';
 import { notifyPaymentConfirmation } from '@/lib/eventNotifications';
+import { logAudit } from '@/lib/audit';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -180,6 +181,14 @@ export async function POST(request: NextRequest) {
 
         await session.commitTransaction();
         session.endSession();
+
+        await logAudit(user, {
+            action: 'CREATE',
+            entity: 'Collection',
+            entityId: String(newCollection[0]._id),
+            summary: `Recorded payment of ${amountPaid} for period ${basePeriodNumber}`,
+            metadata: { groupMemberId, basePeriodNumber, amountPaid, paymentMode },
+        });
 
         // Fire-and-forget: notify member of payment confirmation
         const memberDoc = await (await import('@/models/Member')).default.findById(subscription.memberId).select('name').lean();
