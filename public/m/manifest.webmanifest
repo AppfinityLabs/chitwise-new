@@ -1,39 +1,39 @@
 {
-    "name": "ChitWise Member",
-    "short_name": "ChitWise",
-    "description": "Track your chit groups, dues, payments and draw results.",
-    "id": "/m/",
-    "start_url": "/m/dashboard",
-    "scope": "/m/",
-    "display": "standalone",
-    "orientation": "portrait",
-    "background_color": "#09090b",
-    "theme_color": "#4f46e5",
-    "categories": ["finance", "productivity"],
-    "icons": [
-        {
-            "src": "/icons/member-icon.svg",
-            "sizes": "any",
-            "type": "image/svg+xml",
-            "purpose": "any"
-        },
-        {
-            "src": "/icons/member-icon.svg",
-            "sizes": "any",
-            "type": "image/svg+xml",
-            "purpose": "maskable"
-        }
-    ],
-    "shortcuts": [
-        {
-            "name": "My Groups",
-            "url": "/m/groups",
-            "description": "View your chit groups"
-        },
-        {
-            "name": "Payment History",
-            "url": "/m/history",
-            "description": "View your payments"
-        }
-    ]
+  "name": "ChitWise Member",
+  "short_name": "ChitWise",
+  "description": "Track your chit groups, dues, payments and draw results.",
+  "id": "/m/",
+  "start_url": "/m/dashboard",
+  "scope": "/m/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#09090b",
+  "theme_color": "#4f46e5",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/member-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/member-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My Groups",
+      "url": "/m/groups",
+      "description": "View your chit groups"
+    },
+    {
+      "name": "Payment History",
+      "url": "/m/history",
+      "description": "View your payments"
+    }
+  ]
 }
