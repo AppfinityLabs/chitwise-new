@@ -63,8 +63,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     useEffect(() => {
-        // Skip fetching user on login page
-        if (pathname === '/login') {
+        // Skip fetching user on login page or on the member PWA (/m/*),
+        // which has its own MemberAuthProvider.
+        if (pathname === '/login' || pathname === '/m' || pathname.startsWith('/m/')) {
             setLoading(false);
             return;
         }

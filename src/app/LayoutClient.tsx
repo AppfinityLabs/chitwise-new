@@ -24,8 +24,10 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     const pathname = usePathname();
     const { loading } = useAuth();
     const isLoginPage = pathname === '/login';
+    // The member PWA (/m/*) renders its own shell and must not get the admin chrome.
+    const isMemberApp = pathname === '/m' || pathname.startsWith('/m/');
 
-    if (isLoginPage) {
+    if (isLoginPage || isMemberApp) {
         return <>{children}</>;
     }
 
