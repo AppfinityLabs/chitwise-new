@@ -16,11 +16,11 @@ const proc = globalThis.process as NodeJS.Process & {
 };
 
 if (proc && typeof proc.getBuiltinModule !== "function") {
-  const builtins: Record<string, unknown> = {
+  const builtins: Record<string, object> = {
     v8,
     "node:v8": v8,
     diagnostics_channel: diagnosticsChannel,
     "node:diagnostics_channel": diagnosticsChannel,
   };
-  proc.getBuiltinModule = (id: string) => builtins[id];
+  proc.getBuiltinModule = (id: string) => builtins[id] as object | undefined;
 }
