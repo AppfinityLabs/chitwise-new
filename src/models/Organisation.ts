@@ -36,4 +36,6 @@ const OrganisationSchema = new Schema<IOrganisation>({
     currentInvoiceStatus: { type: String, enum: ['PENDING', 'PAID', 'OVERDUE', null], default: null },
 }, { timestamps: true });
 
+OrganisationSchema.index({ status: 1 });
+
 export default mongoose.models.Organisation || mongoose.model<IOrganisation>('Organisation', OrganisationSchema);

@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import Member from '@/models/Member';
 import '@/models/Organisation';
 import { comparePassword, signToken } from '@/lib/auth';
+import { checkRateLimit, getClientIp, resetRateLimit } from '@/lib/rateLimit';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 
 // Handle OPTIONS preflight for CORS
@@ -21,6 +22,17 @@ export async function POST(request: NextRequest) {
         if (!phone || !pin) {
             return withCors(
                 NextResponse.json({ error: 'Phone number and PIN are required' }, { status: 400 }),
+                origin
+            );
+        }
+
+        // Rate limit: 5 attempts per 10 minutes per IP+phone
+        const ip = getClientIp(request);
+        const rateLimitKey = `member-login:${ip}:${phone}`;
+        const rl = checkRateLimit(rateLimitKey, 5, 10 * 60 * 1000);
+        if (!rl.allowed) {
+            return withCors(
+                NextResponse.json({ error: `Too many login attempts. Try again in ${rl.retryAfterSec}s.` }, { status: 429 }),
                 origin
             );
         }
@@ -60,6 +72,8 @@ export async function POST(request: NextRequest) {
                 origin
             );
         }
+
+        resetRateLimit(rateLimitKey);
 
         // Generate JWT token with MEMBER role
         const token = await signToken({

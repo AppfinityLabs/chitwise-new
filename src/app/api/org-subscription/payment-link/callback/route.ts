@@ -4,12 +4,13 @@ import OrgSubscription from '@/models/OrgSubscription';
 import OrgInvoice from '@/models/OrgInvoice';
 import SubscriptionPlan from '@/models/SubscriptionPlan';
 import Organisation from '@/models/Organisation';
+import crypto from 'crypto';
 
 /**
  * GET /api/org-subscription/payment-link/callback
- * 
+ *
  * Razorpay redirects here after payment link is paid.
- * Activates the plan for the org and shows a success page.
+ * Verifies the Razorpay signature before activating the plan.
  */
 export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl;
@@ -18,7 +19,9 @@ export async function GET(request: NextRequest) {
     const months = parseInt(searchParams.get('months') || '1', 10);
     const razorpayPaymentId = searchParams.get('razorpay_payment_id');
     const razorpayPaymentLinkId = searchParams.get('razorpay_payment_link_id');
+    const razorpayPaymentLinkReferenceId = searchParams.get('razorpay_payment_link_reference_id');
     const razorpayPaymentLinkStatus = searchParams.get('razorpay_payment_link_status');
+    const razorpaySignature = searchParams.get('razorpay_signature');
 
     if (!organisationId || !planName) {
         return new NextResponse(renderHTML('Error', 'Invalid payment link callback. Missing parameters.'), {
@@ -26,8 +29,27 @@ export async function GET(request: NextRequest) {
         });
     }
 
-    // If payment was successful, activate the plan
+    // If payment was successful, verify signature then activate the plan
     if (razorpayPaymentLinkStatus === 'paid' && razorpayPaymentId) {
+        // Verify Razorpay signature to prevent forged callbacks
+        const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+        if (webhookSecret && razorpaySignature) {
+            const payload = `${razorpayPaymentLinkId}|${razorpayPaymentLinkReferenceId}|${razorpayPaymentLinkStatus}|${razorpayPaymentId}`;
+            const expectedSignature = crypto
+                .createHmac('sha256', webhookSecret)
+                .update(payload)
+                .digest('hex');
+            if (expectedSignature !== razorpaySignature) {
+                return new NextResponse(renderHTML('Error', 'Payment verification failed. Please contact support.'), {
+                    headers: { 'Content-Type': 'text/html' },
+                });
+            }
+        } else if (webhookSecret) {
+            // Secret configured but no signature provided — reject
+            return new NextResponse(renderHTML('Error', 'Missing payment signature. Please contact support.'), {
+                headers: { 'Content-Type': 'text/html' },
+            });
+        }
         try {
             await dbConnect();
 

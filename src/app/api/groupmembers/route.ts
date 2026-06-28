@@ -81,6 +81,10 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { groupId, memberId, units, collectionPattern, joinDate } = body;
 
+        if (!units || units <= 0) {
+            return withCors(NextResponse.json({ error: 'Units must be greater than 0' }, { status: 400 }), origin);
+        }
+
         // 1. Fetch Group Details
         const group = await ChitGroup.findById(groupId);
         if (!group) {

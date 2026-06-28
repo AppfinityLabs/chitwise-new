@@ -2,11 +2,25 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  // Keep native/Node-only packages out of the Turbopack bundle so they use the
-  // real Node runtime (mongoose relies on process.getBuiltinModule, bcryptjs is native).
   serverExternalPackages: ["mongoose", "bcryptjs", "firebase-admin"],
-  // CORS is handled dynamically in middleware.ts
-  // Do not add static CORS headers here as they conflict with the dynamic handling
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-XSS-Protection", value: "1; mode=block" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

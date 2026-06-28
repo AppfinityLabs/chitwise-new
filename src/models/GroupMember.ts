@@ -30,4 +30,7 @@ const GroupMemberSchema = new Schema<IGroupMember>({
     status: { type: String, enum: ['ACTIVE', 'CLOSED', 'DEFAULTED'], default: 'ACTIVE' },
 }, { timestamps: true });
 
+GroupMemberSchema.index({ groupId: 1, memberId: 1 });
+GroupMemberSchema.index({ groupId: 1, status: 1 });
+
 export default mongoose.models.GroupMember || mongoose.model<IGroupMember>('GroupMember', GroupMemberSchema);

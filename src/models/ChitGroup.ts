@@ -24,10 +24,10 @@ const ChitGroupSchema = new Schema<IChitGroup>({
     groupName: { type: String, required: true },
     description: { type: String },
     frequency: { type: String, enum: ['DAILY', 'WEEKLY', 'MONTHLY'], required: true },
-    contributionAmount: { type: Number, required: true },
-    totalUnits: { type: Number, required: true }, 
-    totalPeriods: { type: Number, required: true },
-    commissionValue: { type: Number, required: true },
+    contributionAmount: { type: Number, required: true, min: [1, 'Contribution amount must be at least 1'] },
+    totalUnits: { type: Number, required: true, min: [1, 'Total units must be at least 1'] },
+    totalPeriods: { type: Number, required: true, min: [1, 'Total periods must be at least 1'] },
+    commissionValue: { type: Number, required: true, min: [0, 'Commission value cannot be negative'] },
     allowCustomCollectionPattern: { type: Boolean, default: false },
     subscriptionAmount: { type: Number, default: 0 },
     subscriptionFrequency: { type: String, enum: ['DAILY', 'WEEKLY', 'MONTHLY'] },
@@ -37,5 +37,7 @@ const ChitGroupSchema = new Schema<IChitGroup>({
     status: { type: String, enum: ['ACTIVE', 'CLOSED', 'SUSPENDED'], default: 'ACTIVE' },
     organisationId: { type: Schema.Types.ObjectId, ref: 'Organisation', required: true },
 }, { timestamps: true });
+
+ChitGroupSchema.index({ organisationId: 1, status: 1 });
 
 export default mongoose.models.ChitGroup || mongoose.model<IChitGroup>('ChitGroup', ChitGroupSchema);

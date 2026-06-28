@@ -96,6 +96,12 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { groupMemberId, basePeriodNumber, amountPaid, paymentMode, remarks, periodDate } = body;
 
+        if (!amountPaid || amountPaid <= 0) {
+            await session.abortTransaction();
+            session.endSession();
+            return withCors(NextResponse.json({ error: 'amountPaid must be greater than 0' }, { status: 400 }), origin);
+        }
+
         // 1. Fetch Subscription
         const subscription = await GroupMember.findById(groupMemberId).populate('groupId');
         if (!subscription) {

@@ -4,6 +4,7 @@ import User from '@/models/User';
 import Organisation from '@/models/Organisation';
 import Otp from '@/models/Otp';
 import { generateOtp, getOtpExpiry, sendOtpViaMSG91, getActiveProvider } from '@/lib/otp';
+import { hashPassword } from '@/lib/auth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 
 export async function OPTIONS(request: NextRequest) {
@@ -78,10 +79,11 @@ export async function POST(request: NextRequest) {
             sent = true;
         }
 
-        // Store OTP in DB for verification
+        // Store hashed OTP in DB for verification
+        const hashedOtp = await hashPassword(otp);
         await Otp.create({
             phone: normalizedPhone,
-            otp,
+            otp: hashedOtp,
             provider,
             expiresAt: getOtpExpiry(),
         });

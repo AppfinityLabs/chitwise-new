@@ -4,14 +4,10 @@ import { verifyToken, getTokenFromCookies } from '@/lib/auth';
 
 // CORS allowed origins
 const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3002',
-    'http://localhost:3003',
     'https://chitwise-pwa.vercel.app',
     'https://chitwise-member.vercel.app',
-    process.env.NEXT_PUBLIC_PWA_URL, // Add PWA URL in .env.local if needed
-    process.env.NEXT_PUBLIC_MEMBER_PWA_URL, // Member PWA URL
+    process.env.NEXT_PUBLIC_PWA_URL,
+    process.env.NEXT_PUBLIC_MEMBER_PWA_URL,
 ].filter(Boolean);
 
 // CORS headers helper
@@ -23,9 +19,8 @@ function getCorsHeaders(origin: string | null) {
         'Access-Control-Max-Age': '86400',
     };
 
-    // Allow localhost origins (for development) or specified origins
     if (origin) {
-        const isLocalhost = origin.startsWith('http://localhost:');
+        const isLocalhost = process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost:');
         const isAllowed = allowedOrigins.includes(origin);
 
         if (isLocalhost || isAllowed) {
@@ -59,21 +54,27 @@ export async function middleware(request: NextRequest) {
 
     // Public routes that don't require authentication
     const publicRoutes = ['/login'];
-    const publicApiRoutes = ['/api/auth/login', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/seed', '/api/push/vapid-key', '/api/member/auth/login', '/api/member/auth/logout'];
+    const publicApiRoutes = [
+        '/api/auth/login',
+        '/api/auth/send-otp',
+        '/api/auth/verify-otp',
+        '/api/push/vapid-key',
+        '/api/member/',                              // all member routes — individual handlers enforce member auth
+        '/api/org-subscription/webhook',             // Razorpay webhook — handler verifies HMAC signature
+        '/api/org-subscription/payment-link/callback', // Razorpay redirect — handler verifies signature
+    ];
 
-    // Allow cron routes authenticated with CRON_SECRET (external cron services)
+    // Allow cron routes authenticated with CRON_SECRET only
     if (pathname.startsWith('/api/cron/')) {
         const authHeader = request.headers.get('authorization');
         const cronSecret = process.env.CRON_SECRET;
-        const isInternalCron = request.headers.get('x-internal-cron') === 'true';
         const hasCronSecret = cronSecret && authHeader === `Bearer ${cronSecret}`;
 
-        if (hasCronSecret || isInternalCron) {
+        if (hasCronSecret) {
             console.log(`[Middleware] Allowing cron route: ${pathname}`);
-            const response = NextResponse.next();
-            return response;
+            return NextResponse.next();
         }
-        // If no valid cron auth, fall through to normal JWT auth flow
+        // Fall through to 401 for unauthenticated cron calls
     }
 
     // Check if the route is public

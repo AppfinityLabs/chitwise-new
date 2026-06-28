@@ -5,6 +5,7 @@ import GroupMember from '@/models/GroupMember';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import { calculateCurrentPeriod, countCompletedInstallments } from '@/lib/utils';
+import ChitGroup from '@/models/ChitGroup';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -39,6 +40,14 @@ export async function GET(request: NextRequest) {
                 NextResponse.json({ error: 'Subscription not found' }, { status: 404 }),
                 origin
             );
+        }
+
+        // Org scope check
+        if (user.role === 'ORG_ADMIN' && user.organisationId) {
+            const group = await ChitGroup.findById((subscription.groupId as any)._id || subscription.groupId);
+            if (!group || group.organisationId.toString() !== user.organisationId.toString()) {
+                return withCors(NextResponse.json({ error: 'Access denied' }, { status: 403 }), origin);
+            }
         }
 
         const group = subscription.groupId;

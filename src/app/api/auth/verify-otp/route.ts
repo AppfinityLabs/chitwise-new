@@ -3,7 +3,7 @@ import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import Organisation from '@/models/Organisation';
 import Otp from '@/models/Otp';
-import { signToken } from '@/lib/auth';
+import { signToken, comparePassword } from '@/lib/auth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 
 export async function OPTIONS(request: NextRequest) {
@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
                 );
             }
 
-            if (otpRecord.otp !== otp) {
+            const isOtpValid = await comparePassword(otp, otpRecord.otp);
+            if (!isOtpValid) {
                 await Otp.updateOne({ _id: otpRecord._id }, { $inc: { attempts: 1 } });
                 return withCors(
                     NextResponse.json({ error: 'Invalid OTP' }, { status: 401 }),

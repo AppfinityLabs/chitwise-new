@@ -36,5 +36,6 @@ const CollectionSchema = new Schema<ICollection>({
 
 // Prevent duplicate collection for same sequence
 CollectionSchema.index({ groupMemberId: 1, basePeriodNumber: 1, collectionSequence: 1 }, { unique: true });
+CollectionSchema.index({ groupId: 1, collectedAt: -1 });
 
 export default mongoose.models.Collection || mongoose.model<ICollection>('Collection', CollectionSchema);

@@ -7,6 +7,7 @@ import Collection from '@/models/Collection';
 import Winner from '@/models/Winner';
 import User from '@/models/User';
 import { hashPassword } from '@/lib/auth';
+import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import mongoose from 'mongoose';
 
@@ -17,6 +18,16 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     const origin = request.headers.get('origin');
+
+    if (process.env.SEED_ENABLED !== 'true') {
+        return withCors(NextResponse.json({ error: 'Seed endpoint is disabled' }, { status: 403 }), origin);
+    }
+
+    const user = await verifyApiAuth(request);
+    if (!user || user.role !== 'SUPER_ADMIN') {
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
+    }
+
     await dbConnect();
 
     try {
@@ -156,6 +167,16 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
     const origin = request.headers.get('origin');
+
+    if (process.env.SEED_ENABLED !== 'true') {
+        return withCors(NextResponse.json({ error: 'Seed endpoint is disabled' }, { status: 403 }), origin);
+    }
+
+    const user = await verifyApiAuth(request);
+    if (!user || user.role !== 'SUPER_ADMIN') {
+        return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
+    }
+
     await dbConnect();
     const session = await mongoose.startSession();
     session.startTransaction();

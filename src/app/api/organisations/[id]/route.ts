@@ -25,6 +25,12 @@ export async function GET(
     await dbConnect();
     try {
         const { id } = await params;
+
+        // ORG_ADMIN can only read their own organisation
+        if (user.role === 'ORG_ADMIN' && user.organisationId?.toString() !== id) {
+            return withCors(NextResponse.json({ error: 'Access denied' }, { status: 403 }), origin);
+        }
+
         const organisation = await Organisation.findById(id);
         if (!organisation) {
             return withCors(NextResponse.json({ error: 'Organisation not found' }, { status: 404 }), origin);
