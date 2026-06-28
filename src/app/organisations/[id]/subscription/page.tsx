@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, CheckCircle, XCircle, CreditCard, Gift, Link2, Copy, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle, XCircle, CreditCard, Gift, Link2, Copy, ExternalLink, CalendarClock } from 'lucide-react';
 
 interface Subscription {
     _id: string;
@@ -53,6 +53,7 @@ export default function SubscriptionManagement() {
     const [linkLoading, setLinkLoading] = useState(false);
     const [generatedLink, setGeneratedLink] = useState<{ url: string; amount: number; planName: string; months: number } | null>(null);
     const [copied, setCopied] = useState(false);
+    const [additionalDays, setAdditionalDays] = useState(7);
 
     useEffect(() => {
         fetchData();
@@ -290,6 +291,39 @@ export default function SubscriptionManagement() {
                     </button>
                 </div>
             </div>
+
+            {/* Extend Trial */}
+            {(subscription?.status === 'TRIAL' || !subscription?.planName) && (
+                <div className="glass-card p-6 mb-6">
+                    <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+                        <CalendarClock size={14} className="inline mr-2" />
+                        Extend Trial Period
+                    </h2>
+                    <p className="text-zinc-500 text-sm mb-4">
+                        Current trial end: <span className="text-zinc-300">{subscription?.trialEndDate ? new Date(subscription.trialEndDate).toLocaleDateString('en-IN') : '—'}</span>
+                    </p>
+                    <div className="flex flex-wrap items-end gap-4">
+                        <div>
+                            <label className="text-xs text-zinc-500 block mb-1">Add Days</label>
+                            <input
+                                type="number"
+                                min={1}
+                                max={365}
+                                value={additionalDays}
+                                onChange={(e) => setAdditionalDays(Math.max(1, parseInt(e.target.value) || 7))}
+                                className="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-28"
+                            />
+                        </div>
+                        <button
+                            onClick={() => performAction('extend-trial', { additionalDays })}
+                            disabled={actionLoading}
+                            className="px-5 py-2 rounded-lg text-sm font-medium bg-amber-600 hover:bg-amber-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {actionLoading ? 'Processing...' : `Extend by ${additionalDays} days`}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Payment Link */}
             <div className="glass-card p-6 mb-6">

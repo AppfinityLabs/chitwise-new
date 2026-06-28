@@ -1,14 +1,32 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Users, DollarSign } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Users, DollarSign, Copy, Loader2 } from 'lucide-react';
 import { useGroup, useSubscriptions } from '@/lib/swr';
 
 export default function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
+    const router = useRouter();
     const { data: group, isLoading: groupLoading } = useGroup(id);
     const { data: members } = useSubscriptions({ groupId: id });
+    const [duplicating, setDuplicating] = useState(false);
+
+    const handleDuplicate = async () => {
+        if (!confirm('Create a duplicate of this group with the same settings and zero members?')) return;
+        setDuplicating(true);
+        try {
+            const res = await fetch(`/api/chitgroups/${id}/clone`, { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Clone failed');
+            router.push(`/groups/${data.clonedGroup._id}/edit`);
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setDuplicating(false);
+        }
+    };
 
     const memberList = Array.isArray(members) ? members : [];
 
@@ -57,9 +75,27 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                         <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold">{group.status}</span>
                     </div>
                 </div>
-                <div className="text-right">
-                    <p className="text-zinc-400 text-sm">Pot Value</p>
-                    <p className="text-2xl font-bold text-white">₹ {(group.totalUnits * group.contributionAmount).toLocaleString()}</p>
+                <div className="flex flex-col items-end gap-3">
+                    <div className="text-right">
+                        <p className="text-zinc-400 text-sm">Pot Value</p>
+                        <p className="text-2xl font-bold text-white">₹ {(group.totalUnits * group.contributionAmount).toLocaleString()}</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Link
+                            href={`/groups/${group._id}/edit`}
+                            className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-medium transition-colors border border-white/10"
+                        >
+                            Edit
+                        </Link>
+                        <button
+                            onClick={handleDuplicate}
+                            disabled={duplicating}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 text-xs font-medium transition-colors border border-indigo-500/20 disabled:opacity-50"
+                        >
+                            {duplicating ? <Loader2 size={12} className="animate-spin" /> : <Copy size={12} />}
+                            Duplicate
+                        </button>
+                    </div>
                 </div>
             </div>
 

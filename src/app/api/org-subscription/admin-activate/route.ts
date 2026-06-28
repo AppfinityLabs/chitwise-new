@@ -39,14 +39,14 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     try {
-        const { organisationId, action, planName, invoiceId, paymentNote } = await request.json();
+        const { organisationId, action, planName, invoiceId, paymentNote, trialEndDate, additionalDays } = await request.json();
 
         if (!organisationId) {
             return withCors(NextResponse.json({ error: 'organisationId is required' }, { status: 400 }), origin);
         }
 
-        if (!action || !['activate-plan', 'waive-invoice', 'mark-paid'].includes(action)) {
-            return withCors(NextResponse.json({ error: 'Invalid action. Use: activate-plan, waive-invoice, or mark-paid' }, { status: 400 }), origin);
+        if (!action || !['activate-plan', 'waive-invoice', 'mark-paid', 'extend-trial'].includes(action)) {
+            return withCors(NextResponse.json({ error: 'Invalid action. Use: activate-plan, waive-invoice, mark-paid, or extend-trial' }, { status: 400 }), origin);
         }
 
         // Action: Activate a plan for the org (without Razorpay payment)
@@ -170,6 +170,42 @@ export async function POST(request: NextRequest) {
             return withCors(NextResponse.json({
                 message: 'Invoice marked as paid (cash/manual)',
                 invoice,
+            }), origin);
+        }
+
+        // Action: Extend trial end date
+        if (action === 'extend-trial') {
+            let newTrialEnd: Date;
+            if (trialEndDate) {
+                newTrialEnd = new Date(trialEndDate);
+            } else if (additionalDays && additionalDays > 0) {
+                const sub = await OrgSubscription.findOne({ organisationId });
+                const base = sub?.trialEndDate && new Date(sub.trialEndDate) > new Date()
+                    ? new Date(sub.trialEndDate)
+                    : new Date();
+                newTrialEnd = new Date(base.getTime() + additionalDays * 24 * 60 * 60 * 1000);
+            } else {
+                return withCors(NextResponse.json({ error: 'Provide trialEndDate or additionalDays' }, { status: 400 }), origin);
+            }
+
+            const updated = await OrgSubscription.findOneAndUpdate(
+                { organisationId },
+                { status: 'TRIAL', trialEndDate: newTrialEnd },
+                { new: true }
+            );
+
+            if (!updated) {
+                return withCors(NextResponse.json({ error: 'Subscription not found' }, { status: 404 }), origin);
+            }
+
+            await Organisation.findByIdAndUpdate(organisationId, {
+                subscriptionStatus: 'TRIAL',
+                trialEndsAt: newTrialEnd,
+            });
+
+            return withCors(NextResponse.json({
+                message: `Trial extended to ${newTrialEnd.toDateString()}`,
+                trialEndDate: newTrialEnd,
             }), origin);
         }
 

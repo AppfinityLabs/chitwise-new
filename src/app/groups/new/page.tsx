@@ -17,7 +17,6 @@ export default function NewGroupPage() {
         frequency: 'WEEKLY',
         contributionAmount: '',
         totalUnits: '',
-        totalPeriods: '',
         commissionValue: '',
         allowCustomCollectionPattern: false,
         startDate: '',
@@ -38,7 +37,7 @@ export default function NewGroupPage() {
         setLoading(true);
 
         try {
-            await groupsApi.create(formData);
+            await groupsApi.create({ ...formData, totalPeriods: formData.totalUnits });
             await invalidateAfterGroupMutation();
             router.push('/groups');
         } catch (err: any) {
@@ -184,33 +183,19 @@ export default function NewGroupPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-300">Total Periods</label>
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Commission Per Period</label>
+                    <div className="relative">
+                        <span className="absolute left-4 top-3 text-zinc-500">₹</span>
                         <input
                             type="number"
-                            name="totalPeriods"
-                            value={formData.totalPeriods}
+                            name="commissionValue"
+                            value={formData.commissionValue}
                             onChange={handleChange}
-                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                            placeholder="52"
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="4000"
                             required
                         />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-300">Commission Per Period</label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-3 text-zinc-500">₹</span>
-                            <input
-                                type="number"
-                                name="commissionValue"
-                                value={formData.commissionValue}
-                                onChange={handleChange}
-                                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                placeholder="4000"
-                                required
-                            />
-                        </div>
                     </div>
                 </div>
 
