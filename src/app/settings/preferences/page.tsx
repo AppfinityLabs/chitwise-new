@@ -13,6 +13,7 @@ interface PreferenceSettings {
     dateFormat: string;
     language: string;
     timezone: string;
+    trialDays: number;
 }
 
 const CURRENCIES = [
@@ -61,6 +62,7 @@ export default function PreferencesSettingsPage() {
                     dateFormat: data.dateFormat || 'DD/MM/YYYY',
                     language: data.language || 'en',
                     timezone: data.timezone || 'Asia/Kolkata',
+                    trialDays: data.trialDays ?? 7,
                 });
             })
             .catch((err) => setError(err.message || 'Failed to load settings'))
@@ -138,6 +140,22 @@ export default function PreferencesSettingsPage() {
                             <select value={settings.timezone} onChange={(e) => setSettings({ ...settings, timezone: e.target.value })} className={inputClass}>
                                 {TIMEZONES.map((t) => <option key={t} value={t}>{t}</option>)}
                             </select>
+                        </div>
+                    </div>
+
+                    <div className="glass-card p-6 space-y-5">
+                        <div>
+                            <h3 className="text-sm font-semibold text-zinc-200 mb-1">Trial Period</h3>
+                            <p className="text-xs text-zinc-500 mb-4">Number of trial days given to new organisations on signup.</p>
+                            <label className="block text-sm font-medium text-zinc-300 mb-2">Trial Days</label>
+                            <input
+                                type="number"
+                                min={1}
+                                max={365}
+                                value={settings.trialDays}
+                                onChange={(e) => setSettings({ ...settings, trialDays: Math.max(1, parseInt(e.target.value) || 7) })}
+                                className={inputClass}
+                            />
                         </div>
                     </div>
 

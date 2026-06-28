@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Organisation from '@/models/Organisation';
 import OrgSubscription from '@/models/OrgSubscription';
+import AppSettings from '@/models/AppSettings';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 
@@ -44,16 +45,20 @@ export async function POST(request: NextRequest) {
     await dbConnect();
     try {
         const body = await request.json();
+        const appSettings = await AppSettings.findOne({ key: 'GLOBAL' });
+        const trialDays = appSettings?.trialDays ?? 7;
+        const trialMs = trialDays * 24 * 60 * 60 * 1000;
+
         const organisation = await Organisation.create({
             ...body,
             subscriptionPlan: 'TRIAL',
             subscriptionStatus: 'TRIAL',
-            trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+            trialEndsAt: new Date(Date.now() + trialMs),
         });
 
         // Auto-create trial subscription record
         const trialStartDate = new Date();
-        const trialEndDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        const trialEndDate = new Date(Date.now() + trialMs);
         await OrgSubscription.create({
             organisationId: organisation._id,
             status: 'TRIAL',

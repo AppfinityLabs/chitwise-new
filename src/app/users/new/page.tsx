@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Loader2, User, Mail, Lock, Shield, Building2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, User, Mail, Lock, Shield, Building2, Phone } from 'lucide-react';
 
 export default function NewUserPage() {
     const router = useRouter();
@@ -24,6 +24,7 @@ export default function NewUserPage() {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        phone: '',
         password: '',
         role: 'ORG_ADMIN',
         organisationId: ''
@@ -112,6 +113,24 @@ export default function NewUserPage() {
                         </div>
                     </div>
 
+                    {/* Phone */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-zinc-300">Phone Number <span className="text-zinc-500 font-normal">(for OTP login)</span></label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <Phone size={18} className="text-zinc-500" />
+                            </div>
+                            <input
+                                type="tel"
+                                value={formData.phone}
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                className="w-full pl-11 pr-4 py-3 bg-zinc-900/50 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                placeholder="+91 9876543210"
+                            />
+                        </div>
+                        <p className="text-xs text-zinc-500 ml-1">Used for mobile app OTP login. Auto-filled from org if left empty.</p>
+                    </div>
+
                     {/* Password */}
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-zinc-300">Password</label>
@@ -166,7 +185,15 @@ export default function NewUserPage() {
                                 <select
                                     required
                                     value={formData.organisationId}
-                                    onChange={(e) => setFormData({ ...formData, organisationId: e.target.value })}
+                                    onChange={(e) => {
+                                        const orgId = e.target.value;
+                                        const org = organisations.find(o => o._id === orgId);
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            organisationId: orgId,
+                                            phone: prev.phone || org?.phone || ''
+                                        }));
+                                    }}
                                     className="w-full pl-11 pr-4 py-3 bg-zinc-900/50 border border-zinc-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none cursor-pointer"
                                 >
                                     <option value="">Select Organisation</option>

@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Loader2, User, Mail, Lock, Shield, Trash2, Building2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, User, Mail, Lock, Shield, Trash2, Building2, Phone } from 'lucide-react';
 
 interface EditUserPageProps {
     params: Promise<{ id: string }>;
@@ -20,6 +20,7 @@ export default function EditUserPage({ params }: EditUserPageProps) {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        phone: '',
         password: '',
         role: 'ORG_ADMIN',
         status: 'ACTIVE',
@@ -52,10 +53,11 @@ export default function EditUserPage({ params }: EditUserPageProps) {
                 setFormData({
                     name: data.name,
                     email: data.email,
+                    phone: data.phone || '',
                     role: data.role,
                     status: data.status,
                     organisationId: data.organisationId || '',
-                    password: '' // Don't persist password
+                    password: ''
                 });
                 setLoading(false);
             })
@@ -189,6 +191,24 @@ export default function EditUserPage({ params }: EditUserPageProps) {
                                 className="w-full pl-11 pr-4 py-3 bg-zinc-900/50 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                             />
                         </div>
+                    </div>
+
+                    {/* Phone */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-zinc-300">Phone Number <span className="text-zinc-500 font-normal">(for OTP login)</span></label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <Phone size={18} className="text-zinc-500" />
+                            </div>
+                            <input
+                                type="tel"
+                                value={formData.phone}
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                className="w-full pl-11 pr-4 py-3 bg-zinc-900/50 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                placeholder="+91 9876543210"
+                            />
+                        </div>
+                        <p className="text-xs text-zinc-500 ml-1">Used for mobile app OTP login.</p>
                     </div>
 
                     {/* Password */}

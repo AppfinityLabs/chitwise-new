@@ -14,6 +14,8 @@ export interface IAppSettings extends Document {
     dateFormat: string; // e.g. DD/MM/YYYY
     language: string; // e.g. en, ml
     timezone: string; // e.g. Asia/Kolkata
+    // Trial settings
+    trialDays: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -31,6 +33,7 @@ const AppSettingsSchema = new Schema<IAppSettings>(
         dateFormat: { type: String, default: 'DD/MM/YYYY' },
         language: { type: String, default: 'en' },
         timezone: { type: String, default: 'Asia/Kolkata' },
+        trialDays: { type: Number, default: 7, min: 1 },
     },
     { timestamps: true }
 );

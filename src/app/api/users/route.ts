@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const { name, email, password, role } = body;
+        const { name, email, password, role, phone } = body;
 
         // Basic validation
         if (!name || !email || !password) {
@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
             name,
             email,
             password: hashedPassword,
+            phone: phone || undefined,
             role: userRole,
             organisationId: body.organisationId,
             status: 'ACTIVE'

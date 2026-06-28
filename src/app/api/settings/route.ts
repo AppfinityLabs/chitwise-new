@@ -71,6 +71,7 @@ export async function PUT(request: NextRequest) {
             'dateFormat',
             'language',
             'timezone',
+            'trialDays',
         ];
 
         for (const field of allowed) {

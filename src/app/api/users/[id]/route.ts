@@ -65,11 +65,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         }
 
         const body = await request.json();
-        const { name, email, role, status, password } = body;
+        const { name, email, role, status, password, phone } = body;
 
         // Update fields
         if (name) userToUpdate.name = name;
         if (email) userToUpdate.email = email;
+        if (phone !== undefined) userToUpdate.phone = phone || undefined;
 
         // PROTECTION: Cannot promote to Super Admin
         if (role && role === 'SUPER_ADMIN' && userToUpdate.role !== 'SUPER_ADMIN') {
