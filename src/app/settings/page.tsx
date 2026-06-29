@@ -1,13 +1,12 @@
 'use client';
 
-import { Settings, Shield, Bell, ChevronRight } from 'lucide-react';
-
+import { Settings, Shield, Bell, ChevronRight, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect } from 'react';
 
-const SETTINGS_SECTIONS = [
+const SUPER_ADMIN_SECTIONS = [
     {
         href: '/settings/security',
         title: 'Security',
@@ -29,6 +28,23 @@ const SETTINGS_SECTIONS = [
         icon: Settings,
         accent: 'bg-violet-500/10 text-violet-400',
     },
+    {
+        href: '/settings/chit-rules',
+        title: 'Chit Rules',
+        description: 'Member limits, winner selection, payment and commission rules',
+        icon: BookOpen,
+        accent: 'bg-amber-500/10 text-amber-400',
+    },
+];
+
+const ORG_ADMIN_SECTIONS = [
+    {
+        href: '/settings/chit-rules',
+        title: 'Chit Rules',
+        description: 'Member limits, winner selection, payment and commission rules',
+        icon: BookOpen,
+        accent: 'bg-amber-500/10 text-amber-400',
+    },
 ];
 
 export default function SettingsPage() {
@@ -36,28 +52,27 @@ export default function SettingsPage() {
     const router = useRouter();
 
     useEffect(() => {
-        if (!loading && user && user.role !== 'SUPER_ADMIN') {
+        if (!loading && user && user.role !== 'SUPER_ADMIN' && user.role !== 'ORG_ADMIN') {
             router.push('/');
         }
     }, [user, loading, router]);
 
-    if (loading || (user && user.role !== 'SUPER_ADMIN')) {
-        return null; // Or a loading spinner
-    }
+    if (loading || !user) return null;
+
+    const sections = user.role === 'SUPER_ADMIN' ? SUPER_ADMIN_SECTIONS : ORG_ADMIN_SECTIONS;
 
     return (
         <div className="max-w-2xl">
             <h1 className="text-3xl font-bold text-white mb-8">Settings</h1>
 
             <div className="glass-card p-0 overflow-hidden text-zinc-300">
-                {SETTINGS_SECTIONS.map((section, idx) => {
+                {sections.map((section, idx) => {
                     const Icon = section.icon;
                     return (
                         <Link
                             key={section.href}
                             href={section.href}
-                            className={`p-6 hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-4 ${idx < SETTINGS_SECTIONS.length - 1 ? 'border-b border-white/5' : ''
-                                }`}
+                            className={`p-6 hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-4 ${idx < sections.length - 1 ? 'border-b border-white/5' : ''}`}
                         >
                             <div className={`p-3 rounded-xl ${section.accent}`}>
                                 <Icon size={24} />

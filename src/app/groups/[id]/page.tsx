@@ -107,12 +107,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                             <p className="text-lg font-bold text-white">₹ {group.contributionAmount}</p>
                         </div>
                         <div className="glass-card p-4">
-                            <p className="text-xs text-zinc-500 mb-1">Total Units</p>
-                            <p className="text-lg font-bold text-white">{group.totalUnits}</p>
+                            <p className="text-xs text-zinc-500 mb-1">Periods</p>
+                            <p className="text-lg font-bold text-white">{group.totalPeriods}</p>
                         </div>
                         <div className="glass-card p-4">
-                            <p className="text-xs text-zinc-500 mb-1">Duration</p>
-                            <p className="text-lg font-bold text-white">{group.totalPeriods} <span className="text-xs font-normal text-zinc-500">Periods</span></p>
+                            <p className="text-xs text-zinc-500 mb-1">Members</p>
+                            <p className="text-lg font-bold text-white">{memberList.length}</p>
                         </div>
                     </div>
 

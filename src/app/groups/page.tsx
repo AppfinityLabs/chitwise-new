@@ -130,7 +130,7 @@ export default function GroupsPage() {
                                         </div>
                                         <div className="flex items-center gap-3 text-zinc-300">
                                             <Users size={16} className="text-indigo-400" />
-                                            <span className="font-medium">{group.totalUnits} <span className="text-zinc-500 text-xs font-normal">Total Units</span></span>
+                                            <span className="font-medium">{group.totalPeriods} <span className="text-zinc-500 text-xs font-normal">Periods</span></span>
                                         </div>
                                     </div>
 

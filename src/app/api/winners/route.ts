@@ -6,6 +6,7 @@ import GroupMember from '@/models/GroupMember'; // To verify subscription
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import { notifyWinnerAnnouncement } from '@/lib/eventNotifications';
+import { getOrgSettings } from '@/lib/orgSettings';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -91,12 +92,18 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate Organisation Scope
+        const group = await ChitGroup.findById(groupId);
+        if (!group) {
+            return withCors(NextResponse.json({ error: 'Group not found' }, { status: 404 }), origin);
+        }
         if (user.role === 'ORG_ADMIN' && user.organisationId) {
-            const group = await ChitGroup.findById(groupId);
-            if (!group || group.organisationId.toString() !== user.organisationId.toString()) {
+            if (group.organisationId.toString() !== user.organisationId.toString()) {
                 return withCors(NextResponse.json({ error: 'Group does not belong to your organisation' }, { status: 403 }), origin);
             }
         }
+
+        // Load org settings
+        const orgSettings = await getOrgSettings(group.organisationId.toString());
 
         // Verify that the GroupMember exists and belongs to the group
         const subscription = await GroupMember.findOne({ _id: groupMemberId, groupId, memberId });
@@ -105,11 +112,23 @@ export async function POST(request: NextRequest) {
         }
 
         // Check for duplicate winner for the same group and period
-        const existingWinner = await Winner.findOne({ groupId, basePeriodNumber });
-        if (existingWinner) {
-            return withCors(NextResponse.json({ 
-                error: `A winner has already been declared for period ${basePeriodNumber} in this group` 
-            }, { status: 409 }), origin);
+        if (!orgSettings.allowMultipleWinnersPerPeriod) {
+            const existingWinner = await Winner.findOne({ groupId, basePeriodNumber });
+            if (existingWinner) {
+                return withCors(NextResponse.json({
+                    error: `A winner has already been declared for period ${basePeriodNumber}. Multiple winners per period is disabled in org settings.`
+                }, { status: 409 }), origin);
+            }
+        }
+
+        // Check if same member already won and repeat winners are disabled
+        if (!orgSettings.allowRepeatWinners) {
+            const memberAlreadyWon = await Winner.findOne({ groupId, memberId });
+            if (memberAlreadyWon) {
+                return withCors(NextResponse.json({
+                    error: `This member has already won in this group. Repeat winners are disabled in org settings.`
+                }, { status: 409 }), origin);
+            }
         }
 
         // Create Winner
@@ -127,14 +146,13 @@ export async function POST(request: NextRequest) {
             remarks
         });
 
-        // Fire-and-forget: notify winning member
-        const group = await ChitGroup.findById(groupId).select('groupName').lean();
+        // Fire-and-forget: notify winning member (group already fetched above)
         const memberDoc = await (await import('@/models/Member')).default.findById(memberId).select('name').lean();
-        if (group && memberDoc) {
+        if (orgSettings.sendWinnerAnnouncements && memberDoc) {
             notifyWinnerAnnouncement({
                 memberId: memberId.toString(),
                 memberName: (memberDoc as any).name,
-                groupName: (group as any).groupName,
+                groupName: group.groupName,
                 groupId: groupId.toString(),
                 prizeAmount,
                 periodNumber: basePeriodNumber,

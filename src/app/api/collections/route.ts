@@ -10,6 +10,7 @@ import { checkSubscriptionGate } from '@/lib/subscriptionGate';
 import mongoose from 'mongoose';
 import { notifyPaymentConfirmation } from '@/lib/eventNotifications';
 import { logAudit } from '@/lib/audit';
+import { getOrgSettings } from '@/lib/orgSettings';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -110,6 +111,10 @@ export async function POST(request: NextRequest) {
 
         const group = subscription.groupId;
 
+        // Load org settings
+        // @ts-ignore
+        const orgSettings = await getOrgSettings((group.organisationId || '').toString());
+
         // Reject collection if group hasn't started yet
         // @ts-ignore
         if (group.startDate && new Date(group.startDate) > new Date()) {
@@ -131,20 +136,37 @@ export async function POST(request: NextRequest) {
             }, { status: 400 }), origin);
         }
 
-        // Prevent payment for future periods that haven't arrived yet
+        // Prevent payment for future periods unless advance payment is allowed
         // @ts-ignore
         const currentPeriod = calculateCurrentPeriod(group);
-        if (basePeriodNumber > currentPeriod) {
+
+        // Apply grace period: extend "current period" by gracePeriodDays
+        // @ts-ignore
+        const effectivePeriod = orgSettings.gracePeriodDays > 0
+            // @ts-ignore
+            ? calculateCurrentPeriod({ ...group.toObject(), startDate: new Date(new Date(group.startDate).getTime() - orgSettings.gracePeriodDays * 86400000) })
+            : currentPeriod;
+
+        if (!orgSettings.allowAdvancePayment && basePeriodNumber > effectivePeriod) {
             await session.abortTransaction();
             session.endSession();
             return withCors(NextResponse.json({
-                error: `Cannot collect for period ${basePeriodNumber}. Current period is ${currentPeriod}.`
+                error: `Cannot collect for period ${basePeriodNumber}. Current period is ${currentPeriod}. Enable advance payment in org settings to allow this.`
             }, { status: 400 }), origin);
         }
 
         // @ts-ignore
         const contributionPerPeriod = group.contributionAmount * subscription.units;
         const amountDuePerCollection = contributionPerPeriod / subscription.collectionFactor;
+
+        // Partial payment check
+        if (!orgSettings.allowPartialPayment && amountPaid < amountDuePerCollection) {
+            await session.abortTransaction();
+            session.endSession();
+            return withCors(NextResponse.json({
+                error: `Partial payment not allowed. Full amount of ₹${amountDuePerCollection} required.`
+            }, { status: 400 }), origin);
+        }
 
         // 2. Determine Sequence
         const existingCollectionsCount = await Collection.countDocuments({
@@ -198,7 +220,7 @@ export async function POST(request: NextRequest) {
 
         // Fire-and-forget: notify member of payment confirmation
         const memberDoc = await (await import('@/models/Member')).default.findById(subscription.memberId).select('name').lean();
-        if (memberDoc) {
+        if (orgSettings.sendPaymentReminders && memberDoc) {
             notifyPaymentConfirmation({
                 memberId: subscription.memberId.toString(),
                 memberName: (memberDoc as any).name,

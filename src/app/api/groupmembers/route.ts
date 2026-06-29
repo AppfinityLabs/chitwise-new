@@ -7,6 +7,7 @@ import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import { calculateCurrentPeriod, calculateOverdueAmount, calculatePaymentStatus } from '@/lib/utils';
 import { notifyEnrollment } from '@/lib/eventNotifications';
+import { getOrgSettings } from '@/lib/orgSettings';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -91,17 +92,22 @@ export async function POST(request: NextRequest) {
             return withCors(NextResponse.json({ error: 'Group not found' }, { status: 404 }), origin);
         }
 
-        // 2. Validate unit allocation - check total enrolled units won't exceed group capacity
-        const existingSubscriptions = await GroupMember.find({ groupId, status: 'ACTIVE' });
-        const totalAllocatedUnits = existingSubscriptions.reduce((sum: number, sub: any) => sum + sub.units, 0);
-        if (totalAllocatedUnits + units > group.totalUnits) {
-            const availableUnits = group.totalUnits - totalAllocatedUnits;
+        // 2. Apply org-level enrollment rules
+        const orgSettings = await getOrgSettings(group.organisationId.toString());
+
+        if (!orgSettings.allowFractionalUnits && units % 1 !== 0) {
             return withCors(NextResponse.json({
-                error: `Cannot allocate ${units} unit(s). Only ${availableUnits} unit(s) available out of ${group.totalUnits} total.`
+                error: 'Fractional units are not allowed in this organisation. Use whole numbers only.'
             }, { status: 400 }), origin);
         }
 
-        // 2b. Enforce allowCustomCollectionPattern
+        if (orgSettings.maxUnitsPerMember > 0 && units > orgSettings.maxUnitsPerMember) {
+            return withCors(NextResponse.json({
+                error: `Maximum ${orgSettings.maxUnitsPerMember} unit(s) allowed per member in this organisation.`
+            }, { status: 400 }), origin);
+        }
+
+        // 3. Enforce allowCustomCollectionPattern
         if (!group.allowCustomCollectionPattern && collectionPattern !== group.frequency) {
             return withCors(NextResponse.json({
                 error: `This group does not allow custom collection patterns. Collection pattern must be ${group.frequency}.`
