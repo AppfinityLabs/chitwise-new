@@ -170,7 +170,7 @@ export default function NewGroupPage() {
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-300">Total Units</label>
+                        <label className="text-sm font-medium text-zinc-300">Total Periods</label>
                         <input
                             type="number"
                             name="totalUnits"

@@ -53,7 +53,7 @@ export default function Sidebar() {
                     if (!user) return false;
                     if (user.role === 'SUPER_ADMIN') return true;
                     if (user.role === 'ORG_ADMIN') {
-                        return ['/', '/groups', '/members', '/collections', '/winners', '/reports'].includes(item.href);
+                        return ['/', '/groups', '/members', '/collections', '/winners', '/reports', '/settings'].includes(item.href);
                     }
                     return false;
                 }).map((item) => {
