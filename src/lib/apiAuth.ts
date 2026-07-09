@@ -19,6 +19,14 @@ export async function verifyApiAuth(request: NextRequest) {
         }
     }
 
+    // Member tokens are signed with the same secret but must NEVER be accepted
+    // on admin/staff API routes. Without this, a valid MEMBER token satisfies
+    // every handler that only special-cases ORG_ADMIN and is treated as an
+    // unrestricted (super-admin-like) caller.
+    if (decoded && decoded.role === 'MEMBER') {
+        return null;
+    }
+
     return decoded;
 }
 

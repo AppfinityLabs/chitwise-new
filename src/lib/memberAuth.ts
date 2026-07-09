@@ -21,7 +21,8 @@ export async function verifyMemberAuth(request: NextRequest): Promise<MemberJWTP
     if (cookieHeader) {
         const tokenCookie = cookieHeader.split(';').find(c => c.trim().startsWith('member_token='));
         if (tokenCookie) {
-            token = tokenCookie.split('=')[1];
+            // Everything after the first '=' — token values can contain '='.
+            token = tokenCookie.trim().slice('member_token='.length);
         }
     }
 

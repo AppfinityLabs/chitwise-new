@@ -56,6 +56,14 @@ export async function PUT(
 
     try {
         const { id } = await params;
+
+        // Authorization: SUPER_ADMIN may edit any org; ORG_ADMIN only their own.
+        if (user.role !== 'SUPER_ADMIN') {
+            if (user.role !== 'ORG_ADMIN' || user.organisationId?.toString() !== id) {
+                return withCors(NextResponse.json({ error: 'Access denied' }, { status: 403 }), origin);
+            }
+        }
+
         const body = await request.json();
 
         // Check if organisation exists
@@ -108,6 +116,11 @@ export async function DELETE(
     const user = await verifyApiAuth(request);
     if (!user) {
         return withCors(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), origin);
+    }
+
+    // Deleting an organisation is a destructive, super-admin-only action.
+    if (user.role !== 'SUPER_ADMIN') {
+        return withCors(NextResponse.json({ error: 'Forbidden' }, { status: 403 }), origin);
     }
 
     await dbConnect();

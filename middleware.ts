@@ -35,11 +35,8 @@ export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const origin = request.headers.get('origin');
 
-    console.log(`[Middleware] ${request.method} ${pathname} from origin: ${origin}`);
-
     // Handle preflight OPTIONS requests for CORS
     if (request.method === 'OPTIONS') {
-        console.log('[Middleware] Handling OPTIONS preflight');
         const headers = new Headers();
         const corsHeaders = getCorsHeaders(origin);
 
@@ -48,7 +45,6 @@ export async function middleware(request: NextRequest) {
             headers.set(key, value);
         });
 
-        console.log('[Middleware] Returning CORS headers:', Object.fromEntries(headers.entries()));
         return new NextResponse(null, { status: 204, headers });
     }
 
@@ -71,7 +67,6 @@ export async function middleware(request: NextRequest) {
         const hasCronSecret = cronSecret && authHeader === `Bearer ${cronSecret}`;
 
         if (hasCronSecret) {
-            console.log(`[Middleware] Allowing cron route: ${pathname}`);
             return NextResponse.next();
         }
         // Fall through to 401 for unauthenticated cron calls
@@ -95,14 +90,10 @@ export async function middleware(request: NextRequest) {
     let decoded = null;
     if (token) {
         try {
-            console.log(`[Middleware] Verifying token: ${token.substring(0, 10)}...`);
             decoded = await verifyToken(token);
-            console.log(`[Middleware] Verification result: ${decoded ? 'Success' : 'Failed'}`);
         } catch (e) {
             console.error('[Middleware] Unexpected error verifying token:', e);
         }
-    } else {
-        console.log('[Middleware] No token found in Cookie or Authorization header');
     }
 
     // If user is authenticated and trying to access login page, redirect to dashboard
@@ -148,6 +139,22 @@ export async function middleware(request: NextRequest) {
             );
         }
 
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(loginUrl);
+    }
+
+    // Member tokens must not reach admin/staff routes. Member endpoints live
+    // under /api/member/ (already allowed above as public + member-auth checked
+    // in-handler); everything else here is admin surface. Handlers also reject
+    // member tokens via verifyApiAuth, this is defense-in-depth.
+    if (decoded.role === 'MEMBER') {
+        if (pathname.startsWith('/api/')) {
+            return NextResponse.json(
+                { error: 'Forbidden' },
+                { status: 403, headers: getCorsHeaders(origin) }
+            );
+        }
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('redirect', pathname);
         return NextResponse.redirect(loginUrl);

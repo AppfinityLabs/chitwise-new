@@ -35,7 +35,10 @@ export async function POST(request: NextRequest) {
             return withCors(NextResponse.json({ error: 'Invalid or inactive plan' }, { status: 400 }), origin);
         }
 
-        // Update or create subscription
+        // Record the chosen plan ONLY. Activation (status ACTIVE) happens after
+        // payment is verified (verify-payment / webhook) or via admin-activate.
+        // Selecting a plan must never grant a paid subscription for free, so the
+        // status is intentionally left untouched here.
         const subscription = await OrgSubscription.findOneAndUpdate(
             { organisationId: user.organisationId },
             {
@@ -43,8 +46,6 @@ export async function POST(request: NextRequest) {
                 planName: plan.name,
                 pricePerGroup: plan.pricePerGroup,
                 maxGroups: plan.maxGroups,
-                status: 'ACTIVE',
-                startDate: new Date(),
             },
             { new: true, upsert: false }
         );
@@ -53,14 +54,13 @@ export async function POST(request: NextRequest) {
             return withCors(NextResponse.json({ error: 'No subscription record found. Contact support.' }, { status: 404 }), origin);
         }
 
-        // Update denormalized fields on Organisation
+        // Denormalize the selected plan name only — not the active status.
         await Organisation.findByIdAndUpdate(user.organisationId, {
             subscriptionPlan: plan.name,
-            subscriptionStatus: 'ACTIVE',
         });
 
         return withCors(NextResponse.json({
-            message: 'Plan selected successfully',
+            message: 'Plan selected. Complete payment to activate.',
             subscription,
         }), origin);
     } catch (error) {

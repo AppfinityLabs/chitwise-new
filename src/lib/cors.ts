@@ -23,7 +23,7 @@ export function getCorsHeaders(origin: string | null): Record<string, string> {
 
     // Allow localhost origins (for development) or specified origins
     if (origin) {
-        const isLocalhost = origin.startsWith('http://localhost:');
+        const isLocalhost = process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost:');
         const isAllowed = allowedOrigins.includes(origin);
 
         if (isLocalhost || isAllowed) {

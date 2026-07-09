@@ -5,6 +5,16 @@ if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET environment variable is required. Set it in .env.local');
 }
 
+// Refuse to boot with the shipped placeholder or a weak secret — anyone who
+// knows the secret can forge tokens for any role/org (HS256 is symmetric).
+const WEAK_SECRETS = new Set([
+    'your-super-secret-key-change-in-production',
+    'your-secret-key-min-32-chars',
+]);
+if (WEAK_SECRETS.has(process.env.JWT_SECRET) || process.env.JWT_SECRET.length < 32) {
+    throw new Error('JWT_SECRET is weak or still the placeholder. Set a random secret of at least 32 characters.');
+}
+
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
@@ -68,7 +78,9 @@ export function getTokenFromCookies(cookies: string | null): string | null {
 
     if (!tokenCookie) return null;
 
-    return tokenCookie.split('=')[1];
+    // Return everything after the first '=' — token values can contain '=',
+    // so split('=')[1] would truncate them.
+    return tokenCookie.trim().slice('token='.length);
 }
 
 /**
