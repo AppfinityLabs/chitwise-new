@@ -37,6 +37,42 @@ services:
         type: SECRET
       - key: RAZORPAY_KEY_SECRET
         type: SECRET
+      # Razorpay webhook HMAC — required by /api/org-subscription/webhook
+      - key: RAZORPAY_WEBHOOK_SECRET
+        type: SECRET
+      # Cron auth — required by middleware for /api/cron/* routes
+      - key: CRON_SECRET
+        type: SECRET
+      # Firebase Admin SDK — member OTP verify + FCM push
+      - key: FIREBASE_PROJECT_ID
+        value: "chitwise-appfinity"
+      - key: FIREBASE_WEB_API_KEY
+        type: SECRET
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        type: SECRET
+      # Firebase client (inlined into browser bundle at build time)
+      - key: NEXT_PUBLIC_FIREBASE_API_KEY
+        type: SECRET
+      - key: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+        value: "chitwise-appfinity"
+      - key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+        value: "chitwise-appfinity.firebaseapp.com"
+      - key: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+        value: "chitwise-appfinity.appspot.com"
+      - key: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+        type: SECRET
+      - key: NEXT_PUBLIC_FIREBASE_APP_ID
+        type: SECRET
+      # Email (Resend) — optional; set if email notifications are used
+      - key: RESEND_API_KEY
+        type: SECRET
+      - key: EMAIL_FROM
+        value: "noreply@chitwise.com"
+      # Seed endpoint disabled in production
+      - key: SEED_ENABLED
+        value: "false"
+      - key: NEXT_PUBLIC_APP_URL
+        value: "https://chitwise-admin.ondigitalocean.app"
       - key: NEXT_PUBLIC_PWA_URL
         value: "https://chitwise-pwa.vercel.app"
       - key: NEXT_PUBLIC_MEMBER_PWA_URL
