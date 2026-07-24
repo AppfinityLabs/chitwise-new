@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import OrgInvoice from '@/models/OrgInvoice';
-import OrgSubscription from '@/models/OrgSubscription';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
-import { getOrCreateCurrentInvoice } from '@/lib/subscriptionGate';
+import { getOrCreateGroupInvoice } from '@/lib/subscriptionGate';
 import Razorpay from 'razorpay';
 
 function getRazorpay() {
@@ -32,63 +30,63 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     try {
-        // Parse optional months parameter from body
-        let months = 1;
+        let groupId: string | undefined;
         try {
             const body = await request.json();
-            months = Math.min(Math.max(Math.floor(Number(body.months) || 1), 1), 12);
-        } catch { /* no body or invalid JSON — default 1 month */ }
+            groupId = body?.groupId;
+        } catch { /* no body or invalid JSON */ }
 
-        // Get or create invoice for current month
-        const invoice = await getOrCreateCurrentInvoice(user.organisationId);
-
-        if (!invoice) {
-            return withCors(NextResponse.json({ error: 'No invoice to pay. No active groups found.' }, { status: 400 }), origin);
+        if (!groupId) {
+            return withCors(NextResponse.json({ error: 'groupId is required' }, { status: 400 }), origin);
         }
 
-        if (invoice.status === 'PAID' && months === 1) {
+        // Get or create this group's invoice for the current month
+        const invoice = await getOrCreateGroupInvoice(user.organisationId, groupId);
+
+        if (!invoice) {
+            return withCors(NextResponse.json({ error: 'No invoice to pay for this group.' }, { status: 400 }), origin);
+        }
+
+        if (invoice.status === 'PAID' || invoice.status === 'WAIVED') {
             return withCors(NextResponse.json({ error: 'Invoice already paid' }, { status: 400 }), origin);
         }
 
-        const totalAmount = invoice.totalAmount * months;
-
-        // If order already exists for single month and is still valid, return it
-        if (months === 1 && invoice.razorpayOrderId) {
+        // Reuse an existing order for this invoice
+        if (invoice.razorpayOrderId) {
             return withCors(NextResponse.json({
                 orderId: invoice.razorpayOrderId,
                 amount: invoice.totalAmount * 100, // paise
                 currency: 'INR',
                 invoiceId: invoice._id,
-                months: 1,
+                groupId: invoice.groupId,
+                groupName: invoice.groupName,
                 key: process.env.RAZORPAY_KEY_ID,
             }), origin);
         }
 
         // Create Razorpay order
         const order = await getRazorpay().orders.create({
-            amount: totalAmount * 100, // Razorpay uses paise
+            amount: invoice.totalAmount * 100, // Razorpay uses paise
             currency: 'INR',
-            receipt: `inv_${invoice._id}_${months}m`,
+            receipt: `inv_${invoice._id}`,
             notes: {
                 organisationId: user.organisationId.toString(),
                 invoiceId: invoice._id.toString(),
+                groupId: invoice.groupId.toString(),
                 billingMonth: invoice.billingMonth.toISOString(),
-                months: months.toString(),
             },
         });
 
-        // Save order ID to invoice (for single month)
-        if (months === 1) {
-            invoice.razorpayOrderId = order.id;
-            await invoice.save();
-        }
+        invoice.razorpayOrderId = order.id;
+        await invoice.save();
 
         return withCors(NextResponse.json({
             orderId: order.id,
             amount: order.amount,
             currency: order.currency,
             invoiceId: invoice._id,
-            months,
+            groupId: invoice.groupId,
+            groupName: invoice.groupName,
             monthlyAmount: invoice.totalAmount,
             key: process.env.RAZORPAY_KEY_ID,
         }), origin);

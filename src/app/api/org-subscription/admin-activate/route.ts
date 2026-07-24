@@ -6,6 +6,7 @@ import SubscriptionPlan from '@/models/SubscriptionPlan';
 import Organisation from '@/models/Organisation';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { syncOrgInvoiceStatus } from '@/lib/subscriptionGate';
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
@@ -135,6 +136,8 @@ export async function POST(request: NextRequest) {
                 { status: 'ACTIVE' }
             );
 
+            await syncOrgInvoiceStatus(organisationId);
+
             return withCors(NextResponse.json({
                 message: 'Invoice waived successfully',
                 invoice,
@@ -166,6 +169,8 @@ export async function POST(request: NextRequest) {
                 { organisationId },
                 { status: 'ACTIVE' }
             );
+
+            await syncOrgInvoiceStatus(organisationId);
 
             return withCors(NextResponse.json({
                 message: 'Invoice marked as paid (cash/manual)',

@@ -4,7 +4,7 @@ import OrgSubscription from '@/models/OrgSubscription';
 import ChitGroup from '@/models/ChitGroup';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
-import { getOrCreateCurrentInvoice } from '@/lib/subscriptionGate';
+import { getOrCreateCurrentInvoicesForOrg } from '@/lib/subscriptionGate';
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
@@ -62,38 +62,49 @@ export async function GET(request: NextRequest) {
                 daysRemaining,
                 activeGroupCount,
                 planName: subscription.planName,
-                currentInvoice: null,
+                groupInvoices: [],
+                totalDue: 0,
+                unpaidGroupCount: 0,
             }), origin);
         }
 
-        // Active/Expired subscription — auto-generate invoice if needed
-        const currentInvoice = await getOrCreateCurrentInvoice(targetOrgId);
+        // Active/Expired subscription — auto-generate this month's per-group invoices
+        const invoices = await getOrCreateCurrentInvoicesForOrg(targetOrgId);
 
-        let isCollectionAllowed = true;
-        if (currentInvoice && currentInvoice.status !== 'PAID' && currentInvoice.status !== 'WAIVED') {
-            isCollectionAllowed = now <= new Date(currentInvoice.graceEndDate);
-        }
+        const groupInvoices = invoices.map((invoice) => {
+            const isSettled = invoice.status === 'PAID' || invoice.status === 'WAIVED';
+            return {
+                id: invoice._id,
+                groupId: invoice.groupId,
+                groupName: invoice.groupName,
+                billingMonth: invoice.billingMonth,
+                pricePerGroup: invoice.pricePerGroup,
+                totalAmount: invoice.totalAmount,
+                status: invoice.status,
+                dueDate: invoice.dueDate,
+                graceEndDate: invoice.graceEndDate,
+                paidAt: invoice.paidAt,
+                // Collections for a group are allowed while its own invoice is settled
+                // or still inside the grace period.
+                isCollectionAllowed: isSettled || now <= new Date(invoice.graceEndDate),
+            };
+        });
+
+        const unpaid = groupInvoices.filter((i) => i.status !== 'PAID' && i.status !== 'WAIVED');
 
         return withCors(NextResponse.json({
             status: subscription.status,
-            isCollectionAllowed,
+            // Org-level flag kept for back-compat: true when at least one group can collect.
+            isCollectionAllowed: groupInvoices.length === 0 || groupInvoices.some((i) => i.isCollectionAllowed),
             isTrialActive: false,
             trialDaysRemaining: 0,
             planName: subscription.planName,
             pricePerGroup: subscription.pricePerGroup,
             maxGroups: subscription.maxGroups,
             activeGroupCount,
-            currentInvoice: currentInvoice ? {
-                id: currentInvoice._id,
-                billingMonth: currentInvoice.billingMonth,
-                activeGroupCount: currentInvoice.activeGroupCount,
-                pricePerGroup: currentInvoice.pricePerGroup,
-                totalAmount: currentInvoice.totalAmount,
-                status: currentInvoice.status,
-                dueDate: currentInvoice.dueDate,
-                graceEndDate: currentInvoice.graceEndDate,
-                paidAt: currentInvoice.paidAt,
-            } : null,
+            groupInvoices,
+            totalDue: unpaid.reduce((sum, i) => sum + i.totalAmount, 0),
+            unpaidGroupCount: unpaid.length,
         }), origin);
     } catch (error: any) {
         console.error('Subscription status error:', error?.message || error);

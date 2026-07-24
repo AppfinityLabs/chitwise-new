@@ -26,9 +26,10 @@ export async function GET(request: NextRequest) {
     await dbConnect();
 
     try {
+        // Rows are per group per month, so the cap scales with group count.
         const invoices = await OrgInvoice.find({ organisationId: targetOrgId })
-            .sort({ billingMonth: -1 })
-            .limit(12); // Last 12 months
+            .sort({ billingMonth: -1, groupName: 1 })
+            .limit(120);
 
         return withCors(NextResponse.json(invoices), origin);
     } catch (error) {

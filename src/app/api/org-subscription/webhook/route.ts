@@ -4,6 +4,7 @@ import OrgInvoice from '@/models/OrgInvoice';
 import OrgSubscription from '@/models/OrgSubscription';
 import Organisation from '@/models/Organisation';
 import SubscriptionPlan from '@/models/SubscriptionPlan';
+import { getCurrentBillingMonth, getOrCreateCurrentInvoicesForOrg, syncOrgInvoiceStatus } from '@/lib/subscriptionGate';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
@@ -55,9 +56,9 @@ export async function POST(request: NextRequest) {
             invoice.razorpayPaymentId = payment.id;
             await invoice.save();
 
-            // Update org status
+            // Update org status. currentInvoiceStatus is recomputed across every
+            // group's invoice, since an org can now be only partially paid.
             await Organisation.findByIdAndUpdate(invoice.organisationId, {
-                currentInvoiceStatus: 'PAID',
                 subscriptionStatus: 'ACTIVE',
             });
 
@@ -65,6 +66,8 @@ export async function POST(request: NextRequest) {
                 { organisationId: invoice.organisationId },
                 { status: 'ACTIVE' }
             );
+
+            await syncOrgInvoiceStatus(invoice.organisationId);
 
             return NextResponse.json({ status: 'processed' });
         }
@@ -79,9 +82,7 @@ export async function POST(request: NextRequest) {
                     invoice.status = 'OVERDUE';
                     await invoice.save();
 
-                    await Organisation.findByIdAndUpdate(invoice.organisationId, {
-                        currentInvoiceStatus: 'OVERDUE',
-                    });
+                    await syncOrgInvoiceStatus(invoice.organisationId);
                 }
             }
 
@@ -96,10 +97,6 @@ export async function POST(request: NextRequest) {
             if (notes.type === 'subscription_activation' && notes.organisationId && notes.planName) {
                 const plan = await SubscriptionPlan.findOne({ name: notes.planName, status: 'ACTIVE' });
                 if (plan) {
-                    const months = parseInt(notes.months || '1', 10);
-                    const now = new Date();
-                    const paidThroughDate = new Date(now.getFullYear(), now.getMonth() + months, 0);
-
                     await OrgSubscription.findOneAndUpdate(
                         { organisationId: notes.organisationId },
                         {
@@ -109,7 +106,6 @@ export async function POST(request: NextRequest) {
                             maxGroups: plan.maxGroups,
                             status: 'ACTIVE',
                             startDate: new Date(),
-                            paidThroughDate,
                         },
                         { upsert: false }
                     );
@@ -119,14 +115,18 @@ export async function POST(request: NextRequest) {
                         subscriptionStatus: 'ACTIVE',
                     });
 
-                    // Mark current + future invoices as PAID
-                    for (let i = 0; i < months; i++) {
-                        const billingMonth = new Date(now.getFullYear(), now.getMonth() + i, 1);
-                        await OrgInvoice.findOneAndUpdate(
-                            { organisationId: notes.organisationId, billingMonth },
-                            { status: 'PAID', paidAt: new Date() },
-                        );
-                    }
+                    // Admin payment links settle the whole org for the current month:
+                    // mark every group's invoice for this month as PAID.
+                    await getOrCreateCurrentInvoicesForOrg(notes.organisationId);
+                    await OrgInvoice.updateMany(
+                        {
+                            organisationId: notes.organisationId,
+                            billingMonth: getCurrentBillingMonth(),
+                            status: { $nin: ['PAID', 'WAIVED'] },
+                        },
+                        { status: 'PAID', paidAt: new Date() },
+                    );
+                    await syncOrgInvoiceStatus(notes.organisationId);
                 }
 
                 return NextResponse.json({ status: 'processed', action: 'plan_activated' });

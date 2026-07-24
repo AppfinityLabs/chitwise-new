@@ -3,6 +3,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IOrgInvoice extends Document {
     organisationId: mongoose.Types.ObjectId;
     subscriptionId: mongoose.Types.ObjectId;
+    groupId: mongoose.Types.ObjectId | null; // null = legacy org-wide invoice
+    groupName: string | null;
     billingMonth: Date; // 1st of the month
     activeGroupCount: number;
     pricePerGroup: number;
@@ -21,6 +23,8 @@ export interface IOrgInvoice extends Document {
 const OrgInvoiceSchema = new Schema<IOrgInvoice>({
     organisationId: { type: Schema.Types.ObjectId, ref: 'Organisation', required: true },
     subscriptionId: { type: Schema.Types.ObjectId, ref: 'OrgSubscription', required: true },
+    groupId: { type: Schema.Types.ObjectId, ref: 'ChitGroup', default: null },
+    groupName: { type: String, default: null },
     billingMonth: { type: Date, required: true },
     activeGroupCount: { type: Number, required: true },
     pricePerGroup: { type: Number, required: true },
@@ -34,7 +38,8 @@ const OrgInvoiceSchema = new Schema<IOrgInvoice>({
     razorpaySignature: { type: String, default: null },
 }, { timestamps: true });
 
-// One invoice per org per billing month
-OrgInvoiceSchema.index({ organisationId: 1, billingMonth: 1 }, { unique: true });
+// One invoice per group per billing month.
+// Legacy org-wide rows carry groupId: null and stay unique per org per month.
+OrgInvoiceSchema.index({ organisationId: 1, groupId: 1, billingMonth: 1 }, { unique: true });
 
 export default mongoose.models.OrgInvoice || mongoose.model<IOrgInvoice>('OrgInvoice', OrgInvoiceSchema);

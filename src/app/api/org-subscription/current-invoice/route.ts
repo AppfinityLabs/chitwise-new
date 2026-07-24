@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
-import { getOrCreateCurrentInvoice } from '@/lib/subscriptionGate';
+import { getOrCreateCurrentInvoicesForOrg } from '@/lib/subscriptionGate';
 import OrgSubscription from '@/models/OrgSubscription';
 
 export async function OPTIONS(request: NextRequest) {
@@ -49,27 +49,29 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        const invoice = await getOrCreateCurrentInvoice(user.organisationId);
+        const invoices = await getOrCreateCurrentInvoicesForOrg(user.organisationId);
 
-        if (!invoice) {
+        if (invoices.length === 0) {
             return withCors(NextResponse.json({
                 status: 'NO_INVOICE',
                 message: 'No active groups found. No invoice needed.',
+                invoices: [],
             }), origin);
         }
 
         return withCors(NextResponse.json({
-            invoice: {
+            invoices: invoices.map((invoice) => ({
                 id: invoice._id,
+                groupId: invoice.groupId,
+                groupName: invoice.groupName,
                 billingMonth: invoice.billingMonth,
-                activeGroupCount: invoice.activeGroupCount,
                 pricePerGroup: invoice.pricePerGroup,
                 totalAmount: invoice.totalAmount,
                 status: invoice.status,
                 dueDate: invoice.dueDate,
                 graceEndDate: invoice.graceEndDate,
                 paidAt: invoice.paidAt,
-            },
+            })),
         }), origin);
     } catch (error) {
         return withCors(NextResponse.json({ error: 'Failed to get current invoice' }, { status: 500 }), origin);

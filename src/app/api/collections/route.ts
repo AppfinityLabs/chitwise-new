@@ -76,17 +76,28 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    // Subscription gate check
-    if (user.organisationId) {
-        const gate = await checkSubscriptionGate(user.organisationId);
-        if (!gate.allowed) {
-            return withCors(NextResponse.json({
-                error: gate.reason,
-                blocked: true,
-                status: gate.status,
-                invoiceAmount: gate.invoiceAmount,
-                dueDate: gate.dueDate,
-            }, { status: 402 }), origin);
+    // Body is parsed up front so the subscription gate can resolve the target group.
+    let body: any;
+    try {
+        body = await request.json();
+    } catch {
+        return withCors(NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 }), origin);
+    }
+
+    // Subscription gate check — billing is per group, so gate on this collection's group
+    if (user.organisationId && body?.groupMemberId) {
+        const member = await GroupMember.findById(body.groupMemberId).select('groupId');
+        if (member?.groupId) {
+            const gate = await checkSubscriptionGate(user.organisationId, member.groupId);
+            if (!gate.allowed) {
+                return withCors(NextResponse.json({
+                    error: gate.reason,
+                    blocked: true,
+                    status: gate.status,
+                    invoiceAmount: gate.invoiceAmount,
+                    dueDate: gate.dueDate,
+                }, { status: 402 }), origin);
+            }
         }
     }
 
@@ -94,7 +105,6 @@ export async function POST(request: NextRequest) {
     session.startTransaction();
 
     try {
-        const body = await request.json();
         const { groupMemberId, basePeriodNumber, amountPaid, paymentMode, remarks, periodDate } = body;
 
         if (!amountPaid || amountPaid <= 0) {

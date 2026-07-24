@@ -5,8 +5,8 @@ import OrgSubscription from '@/models/OrgSubscription';
 import Organisation from '@/models/Organisation';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { syncOrgInvoiceStatus } from '@/lib/subscriptionGate';
 import crypto from 'crypto';
-import Razorpay from 'razorpay';
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
@@ -63,50 +63,22 @@ export async function POST(request: NextRequest) {
         invoice.razorpaySignature = razorpaySignature;
         await invoice.save();
 
-        // Check if this was a multi-month payment by fetching order notes
-        let months = 1;
-        try {
-            const razorpay = new Razorpay({
-                key_id: process.env.RAZORPAY_KEY_ID!,
-                key_secret: process.env.RAZORPAY_KEY_SECRET!,
-            });
-            const order = await razorpay.orders.fetch(razorpayOrderId);
-            months = parseInt((order.notes as any)?.months || '1', 10);
-        } catch { /* default 1 month */ }
+        await OrgSubscription.findOneAndUpdate(
+            { organisationId: user.organisationId },
+            { status: 'ACTIVE' }
+        );
 
-        const now = new Date();
-
-        // If multi-month, mark future invoices as paid and set paidThroughDate
-        if (months > 1) {
-            const paidThroughDate = new Date(now.getFullYear(), now.getMonth() + months, 0);
-            for (let i = 1; i < months; i++) {
-                const billingMonth = new Date(now.getFullYear(), now.getMonth() + i, 1);
-                await OrgInvoice.findOneAndUpdate(
-                    { organisationId: user.organisationId, billingMonth },
-                    { status: 'PAID', paidAt: new Date() },
-                );
-            }
-            await OrgSubscription.findOneAndUpdate(
-                { organisationId: user.organisationId },
-                { status: 'ACTIVE', paidThroughDate }
-            );
-        } else {
-            await OrgSubscription.findOneAndUpdate(
-                { organisationId: user.organisationId },
-                { status: 'ACTIVE' }
-            );
-        }
-
-        // Update organisation denormalized status
-        await Organisation.findByIdAndUpdate(user.organisationId, {
-            currentInvoiceStatus: 'PAID',
-            subscriptionStatus: 'ACTIVE',
-        });
+        // Billing is per group, so the org-level flag is recomputed from every
+        // group's invoice — it only reads PAID once all of them are settled.
+        await Organisation.findByIdAndUpdate(user.organisationId, { subscriptionStatus: 'ACTIVE' });
+        await syncOrgInvoiceStatus(user.organisationId);
 
         return withCors(NextResponse.json({
             message: 'Payment verified successfully',
             invoice: {
                 id: invoice._id,
+                groupId: invoice.groupId,
+                groupName: invoice.groupName,
                 status: invoice.status,
                 paidAt: invoice.paidAt,
                 totalAmount: invoice.totalAmount,
