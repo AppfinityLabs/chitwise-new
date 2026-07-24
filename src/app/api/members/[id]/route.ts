@@ -5,6 +5,8 @@ import GroupMember from '@/models/GroupMember';
 import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import { hashPassword } from '@/lib/auth';
+import Organisation from '@/models/Organisation';
+import { normalizePhone } from '@/lib/phone';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -70,7 +72,23 @@ export async function PUT(
         }
 
         // Update allowed fields
-        const allowedUpdates = ['name', 'phone', 'email', 'address', 'status', 'kycVerified'];
+        if (body.phone !== undefined || body.phoneE164 !== undefined) {
+            const organisation = await Organisation.findById(member.organisationId)
+                .select('defaultCountry');
+            const normalizedPhone = normalizePhone(
+                body.phoneE164 || body.phone,
+                organisation?.defaultCountry,
+            );
+            if (!normalizedPhone) {
+                return withCors(NextResponse.json({ error: 'Enter a valid phone number' }, { status: 400 }), origin);
+            }
+            member.phone = normalizedPhone.e164;
+            member.phoneE164 = normalizedPhone.e164;
+            member.phoneCountry = normalizedPhone.country;
+            member.phoneNational = normalizedPhone.nationalNumber;
+        }
+
+        const allowedUpdates = ['name', 'email', 'address', 'status', 'kycVerified'];
         allowedUpdates.forEach(field => {
             if (body[field] !== undefined) {
                 (member as any)[field] = body[field];

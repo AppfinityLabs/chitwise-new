@@ -5,6 +5,7 @@ import '@/models/Organisation';
 import { comparePassword, signToken } from '@/lib/auth';
 import { checkRateLimit, getClientIp, resetRateLimit } from '@/lib/rateLimit';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { normalizePhone } from '@/lib/phone';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -16,19 +17,23 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     try {
-        const { phone, pin } = await request.json();
+        const { phone, phoneE164, pin } = await request.json();
 
         // Validate input
-        if (!phone || !pin) {
+        if (!(phoneE164 || phone) || !pin) {
             return withCors(
                 NextResponse.json({ error: 'Phone number and PIN are required' }, { status: 400 }),
                 origin
             );
         }
+        const normalized = normalizePhone(phoneE164 || phone);
+        if (!normalized) {
+            return withCors(NextResponse.json({ error: 'Invalid phone number or PIN' }, { status: 401 }), origin);
+        }
 
         // Rate limit: 5 attempts per 10 minutes per IP+phone
         const ip = getClientIp(request);
-        const rateLimitKey = `member-login:${ip}:${phone}`;
+        const rateLimitKey = `member-login:${ip}:${normalized.e164}`;
         const rl = checkRateLimit(rateLimitKey, 5, 10 * 60 * 1000);
         if (!rl.allowed) {
             return withCors(
@@ -38,7 +43,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Find member by phone
-        const member = await Member.findOne({ phone }).populate('organisationId', 'name code');
+        const member = await Member.findOne({
+            $or: [{ phoneE164: normalized.e164 }, { phone: normalized.e164 }, { phone: normalized.nationalNumber }],
+        }).populate('organisationId', 'name code');
 
         if (!member) {
             return withCors(

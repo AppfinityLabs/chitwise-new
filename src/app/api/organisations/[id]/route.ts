@@ -65,6 +65,13 @@ export async function PUT(
         }
 
         const body = await request.json();
+        if (body.defaultCountry) {
+            body.defaultCountry = String(body.defaultCountry).toUpperCase();
+            body.allowedCountries = Array.from(new Set([
+                body.defaultCountry,
+                ...(Array.isArray(body.allowedCountries) ? body.allowedCountries : []),
+            ])).map(country => String(country).toUpperCase());
+        }
 
         // Check if organisation exists
         const organisation = await Organisation.findById(id);
@@ -83,7 +90,12 @@ export async function PUT(
             'gstNumber',
             'panNumber',
             'logo',
-            'status'
+            'status',
+            'defaultCountry',
+            'allowedCountries',
+            'currencyCode',
+            'locale',
+            'timezone'
         ];
 
         allowedUpdates.forEach(field => {

@@ -12,6 +12,7 @@ import PinInput from '@/components/member/PinInput';
 import { memberAuthApi, MemberApiError } from '@/lib/memberApi';
 import { useMemberAuth } from '@/context/MemberAuthContext';
 import { getFirebaseAuth } from '@/lib/firebaseClient';
+import { parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js';
 
 type Step = 'phone' | 'otp';
 
@@ -22,6 +23,8 @@ export default function MemberLoginPage() {
     const { refresh } = useMemberAuth();
     const [step, setStep] = useState<Step>('phone');
     const [phone, setPhone] = useState('');
+    const [country, setCountry] = useState<CountryCode>('BH');
+    const [phoneE164, setPhoneE164] = useState('');
     const [otp, setOtp] = useState('');
     const [error, setError] = useState('');
     const [info, setInfo] = useState('');
@@ -75,25 +78,27 @@ export default function MemberLoginPage() {
     const sendOtp = useCallback(async () => {
         setError('');
         setInfo('');
-        const trimmed = phone.trim();
-        if (!/^\d{10}$/.test(trimmed)) {
-            setError('Enter a valid 10-digit phone number');
+        const parsed = parsePhoneNumberFromString(phone.trim(), country);
+        if (!parsed?.isValid()) {
+            setError('Enter a valid phone number');
             return;
         }
+        const normalizedPhone = parsed.number;
         setLoading(true);
         try {
             // 1) Gate: only proceed if the number belongs to a registered member.
-            await memberAuthApi.checkMember(trimmed);
+            const checked = await memberAuthApi.checkMember(normalizedPhone);
+            setPhoneE164(checked.phoneE164);
 
             // 2) Firebase sends the OTP (client-side) via SMS.
             const auth = getFirebaseAuth();
-            const confirmation = await signInWithPhoneNumber(auth, `+91${trimmed}`, getRecaptcha());
+            const confirmation = await signInWithPhoneNumber(auth, checked.phoneE164, getRecaptcha());
             confirmationRef.current = confirmation;
 
             setStep('otp');
             setOtp('');
             setResendIn(RESEND_SECONDS);
-            setInfo(`OTP sent to +91 ${trimmed.slice(0, 2)}****${trimmed.slice(-2)}`);
+            setInfo(`OTP sent to ${checked.phoneE164.slice(0, 4)}••••${checked.phoneE164.slice(-2)}`);
         } catch (err) {
             if (err instanceof MemberApiError) {
                 setError(err.message);
@@ -111,7 +116,7 @@ export default function MemberLoginPage() {
         } finally {
             setLoading(false);
         }
-    }, [phone, getRecaptcha]);
+    }, [phone, country, getRecaptcha]);
 
     const verifyOtp = useCallback(async (otpValue?: string) => {
         const finalOtp = otpValue ?? otp;
@@ -185,18 +190,35 @@ export default function MemberLoginPage() {
                     >
                         <div>
                             <label className="mb-1.5 block text-xs font-medium text-zinc-400">Phone Number</label>
-                            <div className="relative">
+                            <div className="flex gap-2">
+                                <select
+                                    value={country}
+                                    onChange={(e) => setCountry(e.target.value as CountryCode)}
+                                    className="w-28 rounded-xl border border-white/10 bg-zinc-900/60 px-2 py-3 text-white outline-none focus:border-indigo-500"
+                                    aria-label="Country"
+                                >
+                                    <option value="BH">🇧🇭 +973</option>
+                                    <option value="IN">🇮🇳 +91</option>
+                                    <option value="AE">🇦🇪 +971</option>
+                                    <option value="SA">🇸🇦 +966</option>
+                                    <option value="QA">🇶🇦 +974</option>
+                                    <option value="KW">🇰🇼 +965</option>
+                                    <option value="OM">🇴🇲 +968</option>
+                                    <option value="GB">🇬🇧 +44</option>
+                                    <option value="US">🇺🇸 +1</option>
+                                </select>
+                                <div className="relative flex-1">
                                 <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
                                 <input
                                     type="tel"
-                                    inputMode="numeric"
+                                    inputMode="tel"
                                     autoComplete="tel"
-                                    maxLength={10}
                                     value={phone}
-                                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                                    placeholder="9876543210"
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    placeholder="Mobile number"
                                     className="w-full rounded-xl border border-white/10 bg-zinc-900/60 py-3 pl-10 pr-3 text-white placeholder:text-zinc-600 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                                 />
+                                </div>
                             </div>
                         </div>
 
@@ -224,7 +246,7 @@ export default function MemberLoginPage() {
                             className="flex items-center gap-1.5 text-sm text-zinc-400 transition-colors hover:text-white"
                         >
                             <ArrowLeft className="h-4 w-4" />
-                            +91 {phone}
+                            {phoneE164 || phone}
                         </button>
 
                         <div>

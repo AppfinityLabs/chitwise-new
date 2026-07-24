@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "migrate:phones:dry": "node --env-file=.env.local scripts/migrate-phone-e164.js",
+    "migrate:phones": "node --env-file=.env.local scripts/migrate-phone-e164.js --apply"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -18,6 +20,7 @@
     "firebase-admin": "^13.10.0",
     "framer-motion": "^12.27.0",
     "jose": "^6.1.3",
+    "libphonenumber-js": "^1.13.9",
     "lucide-react": "^0.562.0",
     "mongoose": "^9.1.4",
     "next": "16.1.3",

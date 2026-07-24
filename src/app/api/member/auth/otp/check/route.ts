@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import Member from '@/models/Member';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { normalizePhone } from '@/lib/phone';
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
@@ -20,21 +21,29 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     try {
-        const { phone } = await request.json();
-
-        if (!phone || typeof phone !== 'string' || !/^\d{10}$/.test(phone.trim())) {
-            return withCors(NextResponse.json({ error: 'Enter a valid 10-digit phone number' }, { status: 400 }), origin);
+        const { phone, phoneE164 } = await request.json();
+        const normalized = normalizePhone(phoneE164 || phone);
+        if (!normalized) {
+            return withCors(NextResponse.json({ error: 'Enter a valid phone number' }, { status: 400 }), origin);
         }
 
-        const normalizedPhone = phone.trim();
-
         // Rate limit membership checks per phone (max 5 / 10 min)
-        const rl = checkRateLimit(`member-otp-check:${normalizedPhone}`, 5, 10 * 60 * 1000);
+        const rl = checkRateLimit(
+            `member-otp-check:${normalized.e164}`,
+            5,
+            10 * 60 * 1000,
+        );
         if (!rl.allowed) {
             return withCors(NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 }), origin);
         }
 
-        const member = await Member.findOne({ phone: normalizedPhone });
+        const member = await Member.findOne({
+            $or: [
+                { phoneE164: normalized.e164 },
+                { phone: normalized.e164 },
+                { phone: normalized.nationalNumber },
+            ],
+        });
 
         if (!member) {
             return withCors(NextResponse.json({ error: 'This number is not registered. Please contact your chit organisation.' }, { status: 404 }), origin);
@@ -44,7 +53,10 @@ export async function POST(request: NextRequest) {
             return withCors(NextResponse.json({ error: 'Your account has been deactivated. Please contact your organisation.' }, { status: 403 }), origin);
         }
 
-        return withCors(NextResponse.json({ ok: true }), origin);
+        return withCors(NextResponse.json({
+            ok: true,
+            phoneE164: normalized.e164,
+        }), origin);
     } catch (error) {
         console.error('Member otp check error:', error);
         return withCors(NextResponse.json({ error: 'Something went wrong' }, { status: 500 }), origin);

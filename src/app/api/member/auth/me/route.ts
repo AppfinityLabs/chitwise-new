@@ -22,11 +22,21 @@ export async function GET(request: NextRequest) {
     try {
         const member = await Member.findById(memberPayload.memberId)
             .select('-pin')
-            .populate('organisationId', 'name code');
+            .populate('organisationId', 'name code logo phone email address');
 
         if (!member) {
             return withCors(NextResponse.json({ error: 'Member not found' }, { status: 404 }), origin);
         }
+
+        const organisation = member.organisationId as unknown as {
+            _id: { toString(): string };
+            name?: string;
+            code?: string;
+            logo?: string;
+            phone?: string;
+            email?: string;
+            address?: string;
+        };
 
         return withCors(NextResponse.json({
             id: member._id,
@@ -36,8 +46,17 @@ export async function GET(request: NextRequest) {
             address: member.address,
             status: member.status,
             kycVerified: member.kycVerified,
-            organisationId: member.organisationId._id || member.organisationId,
-            organisationName: (member.organisationId as any)?.name || '',
+            organisationId: organisation._id || member.organisationId,
+            organisationName: organisation.name || '',
+            organisation: {
+                id: organisation._id || member.organisationId,
+                name: organisation.name || '',
+                code: organisation.code || '',
+                logo: organisation.logo || null,
+                phone: organisation.phone || null,
+                email: organisation.email || null,
+                address: organisation.address || null,
+            },
             createdAt: member.createdAt,
         }), origin);
     } catch (error) {

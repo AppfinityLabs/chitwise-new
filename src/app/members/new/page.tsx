@@ -138,7 +138,8 @@ export default function NewMemberPage() {
                             value={formData.phone}
                             onChange={e => setFormData({ ...formData, phone: e.target.value })}
                             className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                            placeholder="e.g. 9876543210"
+                            type="tel"
+                            placeholder="e.g. +973 3600 1234"
                             required
                         />
                     </div>

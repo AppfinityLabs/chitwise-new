@@ -4,6 +4,9 @@ import '@/models/Organisation';
 export interface IMember extends Document {
     name: string;
     phone: string;
+    phoneE164?: string;
+    phoneCountry?: string;
+    phoneNational?: string;
     email?: string;
     address?: string;
     pin?: string;
@@ -17,6 +20,9 @@ export interface IMember extends Document {
 const MemberSchema = new Schema<IMember>({
     name: { type: String, required: true },
     phone: { type: String, required: true },
+    phoneE164: { type: String },
+    phoneCountry: { type: String, uppercase: true },
+    phoneNational: { type: String },
     email: { type: String },
     address: { type: String },
     pin: { type: String }, // 4-digit PIN, stored as bcrypt hash
@@ -27,5 +33,17 @@ const MemberSchema = new Schema<IMember>({
 
 // Phone uniqueness per organisation (not global)
 MemberSchema.index({ phone: 1, organisationId: 1 }, { unique: true });
+MemberSchema.index(
+    { phoneE164: 1, organisationId: 1 },
+    { unique: true, partialFilterExpression: { phoneE164: { $type: 'string' } } },
+);
+MemberSchema.index(
+    { phoneE164: 1 },
+    {
+        unique: true,
+        name: 'unique_customer_phone_e164',
+        partialFilterExpression: { phoneE164: { $type: 'string' } },
+    },
+);
 
 export default mongoose.models.Member || mongoose.model<IMember>('Member', MemberSchema);

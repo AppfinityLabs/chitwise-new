@@ -5,6 +5,8 @@ import { verifyApiAuth } from '@/lib/apiAuth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import { hashPassword } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
+import Organisation from '@/models/Organisation';
+import { normalizePhone } from '@/lib/phone';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -58,6 +60,23 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        const organisation = await Organisation.findById(body.organisationId)
+            .select('defaultCountry');
+        if (!organisation) {
+            return withCors(NextResponse.json({ error: 'Organisation not found' }, { status: 404 }), origin);
+        }
+        const normalizedPhone = normalizePhone(
+            body.phoneE164 || body.phone,
+            organisation.defaultCountry,
+        );
+        if (!normalizedPhone) {
+            return withCors(NextResponse.json({ error: 'Enter a valid phone number' }, { status: 400 }), origin);
+        }
+        body.phone = normalizedPhone.e164;
+        body.phoneE164 = normalizedPhone.e164;
+        body.phoneCountry = normalizedPhone.country;
+        body.phoneNational = normalizedPhone.nationalNumber;
+
         // Hash PIN if provided
         if (body.pin) {
             if (body.pin.length !== 4 || !/^\d{4}$/.test(body.pin)) {
@@ -68,10 +87,12 @@ export async function POST(request: NextRequest) {
 
         // Prevent duplicate phone numbers within the same organisation
         if (body.phone) {
-            const existing = await Member.findOne({ phone: body.phone, organisationId: body.organisationId });
+            const existing = await Member.findOne({
+                phoneE164: body.phoneE164,
+            });
             if (existing) {
                 return withCors(
-                    NextResponse.json({ error: 'A member with this phone number already exists in this organisation' }, { status: 409 }),
+                    NextResponse.json({ error: 'A customer with this phone number already exists' }, { status: 409 }),
                     origin
                 );
             }
@@ -88,7 +109,7 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         if (error?.code === 11000) {
             return withCors(
-                NextResponse.json({ error: 'A member with this phone number already exists in this organisation' }, { status: 409 }),
+                NextResponse.json({ error: 'A customer with this phone number already exists' }, { status: 409 }),
                 origin
             );
         }

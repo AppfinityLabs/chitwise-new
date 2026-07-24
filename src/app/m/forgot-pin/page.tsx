@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Loader2, Phone, ArrowLeft, KeyRound } from 'lucide-react';
 import PinInput from '@/components/member/PinInput';
 import { memberAuthApi, MemberApiError } from '@/lib/memberApi';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
 type Step = 'phone' | 'verify';
 
@@ -23,13 +24,14 @@ export default function ForgotPinPage() {
     const sendOtp = async () => {
         setError('');
         setInfo('');
-        if (!/^\d{10}$/.test(phone.trim())) {
-            setError('Enter a valid 10-digit phone number');
+        const parsed = parsePhoneNumberFromString(phone.trim());
+        if (!parsed?.isValid()) {
+            setError('Enter a valid international phone number');
             return;
         }
         setLoading(true);
         try {
-            const res = await memberAuthApi.sendOtp(phone.trim());
+            const res = await memberAuthApi.sendOtp(parsed.number);
             setStep('verify');
             setInfo(res.devOtp ? `Dev OTP: ${res.devOtp}` : 'OTP sent to your phone.');
         } catch (err) {
@@ -55,7 +57,9 @@ export default function ForgotPinPage() {
         }
         setLoading(true);
         try {
-            await memberAuthApi.resetPin(phone.trim(), otp, newPin);
+            const parsed = parsePhoneNumberFromString(phone.trim());
+            if (!parsed?.isValid()) throw new Error('Invalid phone number');
+            await memberAuthApi.resetPin(parsed.number, otp, newPin);
             router.replace('/m/login');
         } catch (err) {
             setError(err instanceof MemberApiError ? err.message : 'Failed to reset PIN');
@@ -90,11 +94,10 @@ export default function ForgotPinPage() {
                                     <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
                                     <input
                                         type="tel"
-                                        inputMode="numeric"
-                                        maxLength={10}
+                                        inputMode="tel"
                                         value={phone}
-                                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                                        placeholder="9876543210"
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        placeholder="+973 3600 1234"
                                         className="w-full rounded-xl border border-white/10 bg-zinc-900/60 py-3 pl-10 pr-3 text-white placeholder:text-zinc-600 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                                     />
                                 </div>

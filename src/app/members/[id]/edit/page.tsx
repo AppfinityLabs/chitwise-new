@@ -105,12 +105,14 @@ export default function EditMemberPage({ params }: { params: Promise<{ id: strin
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-zinc-300">Phone Number</label>
                         <input
+                            type="tel"
                             name="phone"
                             value={formData.phone}
                             onChange={handleChange}
                             className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                             required
                         />
+                        <p className="text-xs text-zinc-500">Include the country code, for example +973.</p>
                     </div>
                 </div>
 

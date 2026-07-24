@@ -19,7 +19,12 @@ export default function EditOrganisationPage({ params }: { params: Promise<{ id:
         email: '',
         gstNumber: '',
         panNumber: '',
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        defaultCountry: 'BH',
+        allowedCountries: ['BH'],
+        currencyCode: 'BHD',
+        locale: 'en-BH',
+        timezone: 'Asia/Bahrain'
     });
 
     useEffect(() => {
@@ -36,7 +41,12 @@ export default function EditOrganisationPage({ params }: { params: Promise<{ id:
                     email: data.email || '',
                     gstNumber: data.gstNumber || '',
                     panNumber: data.panNumber || '',
-                    status: data.status || 'ACTIVE'
+                    status: data.status || 'ACTIVE',
+                    defaultCountry: data.defaultCountry || 'BH',
+                    allowedCountries: data.allowedCountries || [data.defaultCountry || 'BH'],
+                    currencyCode: data.currencyCode || 'BHD',
+                    locale: data.locale || 'en-BH',
+                    timezone: data.timezone || 'Asia/Bahrain'
                 });
                 setFetching(false);
             })
@@ -122,6 +132,31 @@ export default function EditOrganisationPage({ params }: { params: Promise<{ id:
                             required
                         />
                         <p className="text-xs text-zinc-500">Short code (2-5 characters)</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-300">Default Phone Country</label>
+                        <select name="defaultCountry" value={formData.defaultCountry} onChange={handleChange}
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white">
+                            <option value="BH">Bahrain (+973)</option>
+                            <option value="IN">India (+91)</option>
+                            <option value="AE">UAE (+971)</option>
+                            <option value="SA">Saudi Arabia (+966)</option>
+                            <option value="QA">Qatar (+974)</option>
+                            <option value="KW">Kuwait (+965)</option>
+                            <option value="OM">Oman (+968)</option>
+                            <option value="GB">United Kingdom (+44)</option>
+                            <option value="US">United States (+1)</option>
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-300">Currency</label>
+                        <input name="currencyCode" value={formData.currencyCode} onChange={handleChange}
+                            maxLength={3}
+                            className="w-full uppercase bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white"
+                            placeholder="BHD" />
                     </div>
                 </div>
 

@@ -6,6 +6,7 @@ import { handleCorsOptions, withCors } from '@/lib/cors';
 import { hashPassword } from '@/lib/auth';
 import { generateOtp, getOtpExpiry, sendOtpViaMSG91, getActiveProvider } from '@/lib/otp';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { normalizePhone } from '@/lib/phone';
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
@@ -16,19 +17,21 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     try {
-        const { phone } = await request.json();
-
-        if (!phone || typeof phone !== 'string') {
-            return withCors(NextResponse.json({ error: 'Phone number is required' }, { status: 400 }), origin);
+        const { phone, phoneE164 } = await request.json();
+        const normalized = normalizePhone(phoneE164 || phone);
+        if (!normalized) {
+            return withCors(NextResponse.json({ error: 'A valid phone number is required' }, { status: 400 }), origin);
         }
 
         // Rate limit OTP requests per phone (max 3 / 10 min)
-        const rl = checkRateLimit(`member-otp:${phone}`, 3, 10 * 60 * 1000);
+        const rl = checkRateLimit(`member-otp:${normalized.e164}`, 3, 10 * 60 * 1000);
         if (!rl.allowed) {
             return withCors(NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 }), origin);
         }
 
-        const member = await Member.findOne({ phone });
+        const member = await Member.findOne({
+            $or: [{ phoneE164: normalized.e164 }, { phone: normalized.e164 }, { phone: normalized.nationalNumber }],
+        });
 
         // Generic response — do not reveal whether the phone exists
         const genericResponse = {
@@ -44,9 +47,9 @@ export async function POST(request: NextRequest) {
         const provider = getActiveProvider();
 
         // Replace any existing OTP for this phone
-        await Otp.deleteMany({ phone });
+        await Otp.deleteMany({ phone: normalized.e164 });
         await Otp.create({
-            phone,
+            phone: normalized.e164,
             otp: hashedOtp,
             provider,
             expiresAt: getOtpExpiry(),
@@ -55,7 +58,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Attempt delivery (MSG91 sends our generated OTP via template)
-        await sendOtpViaMSG91(phone, otp).catch(() => false);
+        await sendOtpViaMSG91(normalized.e164, otp).catch(() => false);
 
         const payload: Record<string, unknown> = { ...genericResponse };
         // Expose OTP only in non-production for testing convenience

@@ -5,14 +5,10 @@ import '@/models/Organisation';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import { signToken } from '@/lib/auth';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { normalizePhone } from '@/lib/phone';
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
-}
-
-/** Reduce any phone format (+91…, 0…, spaces) to the last 10 digits. */
-function last10(phone: string): string {
-    return (phone || '').replace(/\D/g, '').slice(-10);
 }
 
 /**
@@ -46,12 +42,18 @@ export async function POST(request: NextRequest) {
             return withCors(NextResponse.json({ error: 'Invalid or expired verification. Please try again.' }, { status: 401 }), origin);
         }
 
-        const tokenPhone = last10(decoded.phone_number || '');
-        if (!tokenPhone || tokenPhone.length !== 10) {
+        const tokenPhone = normalizePhone(decoded.phone_number);
+        if (!tokenPhone) {
             return withCors(NextResponse.json({ error: 'Phone number not verified' }, { status: 401 }), origin);
         }
 
-        const member = await Member.findOne({ phone: tokenPhone }).populate('organisationId', 'name code');
+        const member = await Member.findOne({
+            $or: [
+                { phoneE164: tokenPhone.e164 },
+                { phone: tokenPhone.e164 },
+                { phone: tokenPhone.nationalNumber },
+            ],
+        }).populate('organisationId', 'name code');
         if (!member) {
             return withCors(NextResponse.json({ error: 'This number is not registered. Please contact your chit organisation.' }, { status: 404 }), origin);
         }
@@ -60,9 +62,16 @@ export async function POST(request: NextRequest) {
             return withCors(NextResponse.json({ error: 'Your account has been deactivated. Please contact your organisation.' }, { status: 403 }), origin);
         }
 
+        if (member.phoneE164 !== tokenPhone.e164) {
+            member.phoneE164 = tokenPhone.e164;
+            member.phoneCountry = tokenPhone.country;
+            member.phoneNational = tokenPhone.nationalNumber;
+            await member.save();
+        }
+
         const token = await signToken({
             memberId: member._id.toString(),
-            phone: member.phone,
+            phone: tokenPhone.e164,
             role: 'MEMBER',
             organisationId: member.organisationId?._id?.toString() || member.organisationId?.toString(),
         });
@@ -70,7 +79,7 @@ export async function POST(request: NextRequest) {
         const memberData = {
             id: member._id,
             name: member.name,
-            phone: member.phone,
+            phone: tokenPhone.e164,
             email: member.email,
             status: member.status,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

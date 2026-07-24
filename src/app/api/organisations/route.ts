@@ -45,6 +45,12 @@ export async function POST(request: NextRequest) {
     await dbConnect();
     try {
         const body = await request.json();
+        const defaultCountry = String(body.defaultCountry || 'IN').toUpperCase();
+        body.defaultCountry = defaultCountry;
+        body.allowedCountries = Array.from(new Set([
+            defaultCountry,
+            ...(Array.isArray(body.allowedCountries) ? body.allowedCountries : []),
+        ])).map(country => String(country).toUpperCase());
         const appSettings = await AppSettings.findOne({ key: 'GLOBAL' });
         const trialDays = appSettings?.trialDays ?? 7;
         const trialMs = trialDays * 24 * 60 * 60 * 1000;

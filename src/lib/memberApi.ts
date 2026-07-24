@@ -50,16 +50,16 @@ export const memberFetcher = <T>(endpoint: string) => api<T>(endpoint);
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export const memberAuthApi = {
-    login: (phone: string, pin: string) =>
+    login: (phoneE164: string, pin: string) =>
         api<{ message: string; member: MemberSummary }>('/api/member/auth/login', {
             method: 'POST',
-            body: { phone, pin },
+            body: { phoneE164, pin },
         }),
     // OTP login — Step 1: verify the number is registered before Firebase sends an OTP
-    checkMember: (phone: string) =>
-        api<{ ok: true }>('/api/member/auth/otp/check', {
+    checkMember: (phoneE164: string) =>
+        api<{ ok: true; phoneE164: string }>('/api/member/auth/otp/check', {
             method: 'POST',
-            body: { phone },
+            body: { phoneE164 },
         }),
     // OTP login — Step 2: exchange a verified Firebase ID token for a member session
     verifyFirebaseLogin: (firebaseIdToken: string) =>
@@ -74,15 +74,15 @@ export const memberAuthApi = {
             method: 'PUT',
             body: { currentPin, newPin },
         }),
-    sendOtp: (phone: string) =>
+    sendOtp: (phoneE164: string) =>
         api<{ message: string; devOtp?: string }>('/api/member/auth/forgot-pin/send-otp', {
             method: 'POST',
-            body: { phone },
+            body: { phoneE164 },
         }),
-    resetPin: (phone: string, otp: string, newPin: string) =>
+    resetPin: (phoneE164: string, otp: string, newPin: string) =>
         api<{ message: string }>('/api/member/auth/forgot-pin/reset', {
             method: 'POST',
-            body: { phone, otp, newPin },
+            body: { phoneE164, otp, newPin },
         }),
 };
 

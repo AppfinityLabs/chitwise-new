@@ -6,6 +6,11 @@ export interface IOrganisation extends Document {
     description?: string;
     address?: string;
     phone?: string;
+    defaultCountry: string;
+    allowedCountries: string[];
+    currencyCode: string;
+    locale: string;
+    timezone: string;
     email?: string;
     gstNumber?: string;
     panNumber?: string;
@@ -25,6 +30,11 @@ const OrganisationSchema = new Schema<IOrganisation>({
     description: { type: String },
     address: { type: String },
     phone: { type: String },
+    defaultCountry: { type: String, default: 'IN', uppercase: true },
+    allowedCountries: { type: [String], default: ['IN'] },
+    currencyCode: { type: String, default: 'INR', uppercase: true },
+    locale: { type: String, default: 'en-IN' },
+    timezone: { type: String, default: 'Asia/Kolkata' },
     email: { type: String },
     gstNumber: { type: String },
     panNumber: { type: String },
