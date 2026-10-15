@@ -2,7 +2,11 @@
 const mongoose = require('mongoose');
 
 // Connect to MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://adhil1akbar:BobaMetals123@cluster0.k5mfwdc.mongodb.net/chitwise-appfinity?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error('MONGODB_URI not set. Run with: node --env-file=.env.local <script>');
+  process.exit(1);
+}
 
 async function clearDatabase() {
     console.log('🗑️  Clearing Database...');
