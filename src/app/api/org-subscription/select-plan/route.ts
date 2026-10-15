@@ -35,6 +35,14 @@ export async function POST(request: NextRequest) {
             return withCors(NextResponse.json({ error: 'Invalid or inactive plan' }, { status: 400 }), origin);
         }
 
+        // Free orgs must not drift onto a paid plan by accident; Super Admin turns free off first.
+        const current = await OrgSubscription.findOne({ organisationId: user.organisationId }).select('isFree');
+        if (current?.isFree) {
+            return withCors(NextResponse.json({
+                error: 'Your organisation has free access. No plan is needed.'
+            }, { status: 400 }), origin);
+        }
+
         // Record the chosen plan ONLY. Activation (status ACTIVE) happens after
         // payment is verified (verify-payment / webhook) or via admin-activate.
         // Selecting a plan must never grant a paid subscription for free, so the

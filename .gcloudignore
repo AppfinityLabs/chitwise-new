@@ -1,0 +1,7 @@
+#!include:.gitignore
+.git
+e2e
+playwright-report
+test-results
+tsconfig.tsbuildinfo
+firebase-service-account.json

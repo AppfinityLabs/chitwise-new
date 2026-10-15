@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { verifyToken } from './auth';
+import { getSessionToken } from './sessionCookie';
 
 export interface MemberJWTPayload {
     memberId: string;
@@ -15,16 +16,7 @@ export interface MemberJWTPayload {
  */
 export async function verifyMemberAuth(request: NextRequest): Promise<MemberJWTPayload | null> {
     // 1. Try Cookie
-    const cookieHeader = request.headers.get('cookie');
-    let token: string | null = null;
-
-    if (cookieHeader) {
-        const tokenCookie = cookieHeader.split(';').find(c => c.trim().startsWith('member_token='));
-        if (tokenCookie) {
-            // Everything after the first '=' — token values can contain '='.
-            token = tokenCookie.trim().slice('member_token='.length);
-        }
-    }
+    let token = getSessionToken(request.headers.get('cookie'), 'member_token');
 
     // 2. Try Authorization Header (Bearer)
     if (!token) {

@@ -6,6 +6,7 @@ import { comparePassword, signToken } from '@/lib/auth';
 import { checkRateLimit, getClientIp, resetRateLimit } from '@/lib/rateLimit';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import { normalizePhone } from '@/lib/phone';
+import { setSessionToken } from '@/lib/sessionCookie';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -110,13 +111,7 @@ export async function POST(request: NextRequest) {
         );
 
         // Set httpOnly cookie with token (same-origin only, PWAs use Bearer tokens)
-        response.cookies.set('member_token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7, // 7 days
-            path: '/',
-        });
+        setSessionToken(response, request.headers.get('cookie'), 'member_token', token);
 
         return withCors(response, origin);
     } catch (error) {

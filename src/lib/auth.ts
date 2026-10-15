@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
+import { getSessionToken } from './sessionCookie';
 
 if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET environment variable is required. Set it in .env.local');
@@ -70,17 +71,7 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
  * Extract token from request cookies
  */
 export function getTokenFromCookies(cookies: string | null): string | null {
-    if (!cookies) return null;
-
-    const tokenCookie = cookies
-        .split(';')
-        .find(c => c.trim().startsWith('token='));
-
-    if (!tokenCookie) return null;
-
-    // Return everything after the first '=' — token values can contain '=',
-    // so split('=')[1] would truncate them.
-    return tokenCookie.trim().slice('token='.length);
+    return getSessionToken(cookies, 'token');
 }
 
 /**

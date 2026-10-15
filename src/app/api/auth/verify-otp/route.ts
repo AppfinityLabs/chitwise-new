@@ -5,6 +5,7 @@ import Organisation from '@/models/Organisation';
 import Otp from '@/models/Otp';
 import { signToken, comparePassword } from '@/lib/auth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { setSessionToken } from '@/lib/sessionCookie';
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
@@ -116,13 +117,7 @@ export async function POST(request: NextRequest) {
             { status: 200 }
         );
 
-        response.cookies.set('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7,
-            path: '/'
-        });
+        setSessionToken(response, request.headers.get('cookie'), 'token', token);
 
         return withCors(response, origin);
     } catch (error) {
