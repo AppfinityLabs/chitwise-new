@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
                     headers: { 'Content-Type': 'text/html' },
                 });
             }
-        } else if (webhookSecret) {
-            // Secret configured but no signature provided — reject
+        } else {
+            // No signature, or no secret configured to verify it — reject
             return new NextResponse(renderHTML('Error', 'Missing payment signature. Please contact support.'), {
                 headers: { 'Content-Type': 'text/html' },
             });
