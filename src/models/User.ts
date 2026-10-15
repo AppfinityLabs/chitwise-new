@@ -2,6 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IUser extends Document {
     email: string;
+    username?: string;
     password: string;
     name: string;
     phone?: string;
@@ -21,6 +22,13 @@ const UserSchema = new Schema<IUser>(
             lowercase: true,
             trim: true,
             match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address']
+        },
+        // Optional login name; can be used instead of the email to sign in
+        username: {
+            type: String,
+            lowercase: true,
+            trim: true,
+            match: [/^[a-z0-9._-]{3,30}$/, 'Username must be 3-30 characters: letters, numbers, . _ -']
         },
         password: {
             type: String,
@@ -59,5 +67,9 @@ const UserSchema = new Schema<IUser>(
 
 // Create indexes
 UserSchema.index({ email: 1 });
+UserSchema.index(
+    { username: 1 },
+    { unique: true, partialFilterExpression: { username: { $type: 'string' } } }
+);
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

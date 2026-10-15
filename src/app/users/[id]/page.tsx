@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Loader2, User, Mail, Lock, Shield, Trash2, Building2, Phone } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, User, Mail, Lock, Shield, Trash2, Building2, Phone, AtSign } from 'lucide-react';
 
 interface EditUserPageProps {
     params: Promise<{ id: string }>;
@@ -20,6 +20,7 @@ export default function EditUserPage({ params }: EditUserPageProps) {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        username: '',
         phone: '',
         password: '',
         role: 'ORG_ADMIN',
@@ -53,6 +54,7 @@ export default function EditUserPage({ params }: EditUserPageProps) {
                 setFormData({
                     name: data.name,
                     email: data.email,
+                    username: data.username || '',
                     phone: data.phone || '',
                     role: data.role,
                     status: data.status,
@@ -189,6 +191,26 @@ export default function EditUserPage({ params }: EditUserPageProps) {
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 className="w-full pl-11 pr-4 py-3 bg-zinc-900/50 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Username */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-zinc-300">Username <span className="text-zinc-500 font-normal">(optional, can be used instead of email to log in)</span></label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <AtSign size={18} className="text-zinc-500" />
+                            </div>
+                            <input
+                                type="text"
+                                autoCapitalize="none"
+                                pattern="[A-Za-z0-9._\-]{3,30}"
+                                title="3-30 characters: letters, numbers, . _ -"
+                                value={formData.username}
+                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                className="w-full pl-11 pr-4 py-3 bg-zinc-900/50 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                placeholder="e.g. masjidunnoor"
                             />
                         </div>
                     </div>

@@ -71,6 +71,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         if (name) userToUpdate.name = name;
         if (email) userToUpdate.email = email;
         if (phone !== undefined) userToUpdate.phone = phone || undefined;
+        if (typeof body.username === 'string') {
+            const username = body.username.trim().toLowerCase();
+            if (username && await User.exists({ username, _id: { $ne: userToUpdate._id } })) {
+                return withCors(NextResponse.json({ error: 'This username is already taken' }, { status: 400 }), origin);
+            }
+            userToUpdate.username = username || undefined;
+        }
 
         // PROTECTION: Cannot promote to Super Admin
         if (role && role === 'SUPER_ADMIN' && userToUpdate.role !== 'SUPER_ADMIN') {
