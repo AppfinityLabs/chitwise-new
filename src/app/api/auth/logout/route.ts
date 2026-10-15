@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleCorsOptions, withCors } from '@/lib/cors';
+import { setSessionToken } from '@/lib/sessionCookie';
 
 // Handle OPTIONS preflight for CORS
 export async function OPTIONS(request: NextRequest) {
@@ -14,13 +15,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Clear the token cookie
-    response.cookies.set('token', '', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 0,
-        path: '/'
-    });
+    setSessionToken(response, request.headers.get('cookie'), 'token', null);
 
     return withCors(response, origin);
 }

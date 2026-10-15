@@ -4,6 +4,7 @@ import User from '@/models/User';
 import { comparePassword, signToken } from '@/lib/auth';
 import { handleCorsOptions, withCors } from '@/lib/cors';
 import { checkRateLimit, resetRateLimit, getClientIp } from '@/lib/rateLimit';
+import { setSessionToken } from '@/lib/sessionCookie';
 
 // Allow up to 10 login attempts per IP+email every 15 minutes.
 const LOGIN_LIMIT = 10;
@@ -101,13 +102,7 @@ export async function POST(request: NextRequest) {
         );
 
         // Set httpOnly cookie with token (same-origin only, PWAs use Bearer tokens)
-        response.cookies.set('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7, // 7 days
-            path: '/'
-        });
+        setSessionToken(response, request.headers.get('cookie'), 'token', token);
 
         // Add CORS headers to the response
         return withCors(response, origin);

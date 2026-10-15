@@ -6,6 +6,7 @@ import { handleCorsOptions, withCors } from '@/lib/cors';
 import { signToken } from '@/lib/auth';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { normalizePhone } from '@/lib/phone';
+import { setSessionToken } from '@/lib/sessionCookie';
 
 export async function OPTIONS(request: NextRequest) {
     return handleCorsOptions(request);
@@ -91,13 +92,7 @@ export async function POST(request: NextRequest) {
             { status: 200 }
         );
 
-        response.cookies.set('member_token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7, // 7 days
-            path: '/',
-        });
+        setSessionToken(response, request.headers.get('cookie'), 'member_token', token);
 
         return withCors(response, origin);
     } catch (error) {
