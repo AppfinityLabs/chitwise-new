@@ -20,10 +20,11 @@ export async function OPTIONS(request: NextRequest) {
  * 
  * Body:
  * - organisationId (required)
- * - action: 'activate-plan' | 'waive-invoice' | 'mark-paid'
+ * - action: 'activate-plan' | 'waive-invoice' | 'mark-paid' | 'extend-trial' | 'set-free'
  * - planName: 'BASIC' | 'PREMIUM' (required for activate-plan)
  * - invoiceId: string (required for waive-invoice / mark-paid)
  * - paymentNote: string (optional, e.g. "Cash received on 5th June")
+ * - free: boolean (required for set-free)
  */
 export async function POST(request: NextRequest) {
     const origin = request.headers.get('origin');
@@ -40,14 +41,14 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     try {
-        const { organisationId, action, planName, invoiceId, paymentNote, trialEndDate, additionalDays } = await request.json();
+        const { organisationId, action, planName, invoiceId, paymentNote, trialEndDate, additionalDays, free } = await request.json();
 
         if (!organisationId) {
             return withCors(NextResponse.json({ error: 'organisationId is required' }, { status: 400 }), origin);
         }
 
-        if (!action || !['activate-plan', 'waive-invoice', 'mark-paid', 'extend-trial'].includes(action)) {
-            return withCors(NextResponse.json({ error: 'Invalid action. Use: activate-plan, waive-invoice, mark-paid, or extend-trial' }, { status: 400 }), origin);
+        if (!action || !['activate-plan', 'waive-invoice', 'mark-paid', 'extend-trial', 'set-free'].includes(action)) {
+            return withCors(NextResponse.json({ error: 'Invalid action. Use: activate-plan, waive-invoice, mark-paid, extend-trial, or set-free' }, { status: 400 }), origin);
         }
 
         // Action: Activate a plan for the org (without Razorpay payment)
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
                     maxGroups: plan.maxGroups,
                     status: 'ACTIVE',
                     startDate: new Date(),
+                    isFree: false,
                 },
                 { new: true, upsert: false }
             );
@@ -175,6 +177,54 @@ export async function POST(request: NextRequest) {
             return withCors(NextResponse.json({
                 message: 'Invoice marked as paid (cash/manual)',
                 invoice,
+            }), origin);
+        }
+
+        // Action: Grant or revoke free access (org never pays, collections never gated)
+        if (action === 'set-free') {
+            if (typeof free !== 'boolean') {
+                return withCors(NextResponse.json({ error: 'free (true/false) is required for set-free' }, { status: 400 }), origin);
+            }
+            const sub = await OrgSubscription.findOne({ organisationId });
+            if (!sub) {
+                return withCors(NextResponse.json({ error: 'Subscription not found' }, { status: 404 }), origin);
+            }
+
+            if (free) {
+                sub.isFree = true;
+                sub.status = 'ACTIVE';
+                await sub.save();
+                // Nothing already issued should stay payable
+                const waived = await OrgInvoice.updateMany(
+                    { organisationId, status: { $in: ['PENDING', 'OVERDUE'] } },
+                    { status: 'WAIVED' }
+                );
+                await Organisation.findByIdAndUpdate(organisationId, {
+                    subscriptionStatus: 'ACTIVE',
+                    currentInvoiceStatus: null,
+                });
+                return withCors(NextResponse.json({
+                    message: `Free access granted${waived.modifiedCount ? ` (${waived.modifiedCount} unpaid invoice(s) waived)` : ''}`,
+                    subscription: sub,
+                }), origin);
+            }
+
+            // Revoke: with a plan, normal billing resumes; without one, the org must pick a plan
+            sub.isFree = false;
+            if (!sub.planName) {
+                sub.status = 'TRIAL';
+                sub.trialEndDate = new Date();
+            }
+            await sub.save();
+            await Organisation.findByIdAndUpdate(organisationId, {
+                subscriptionStatus: sub.status,
+                ...(sub.status === 'TRIAL' ? { trialEndsAt: sub.trialEndDate } : {}),
+            });
+            return withCors(NextResponse.json({
+                message: sub.planName
+                    ? `Free access removed. Billing resumes on the ${sub.planName} plan.`
+                    : 'Free access removed. The organisation must select a plan (or extend its trial).',
+                subscription: sub,
             }), origin);
         }
 

@@ -11,6 +11,7 @@ export interface IOrgSubscription extends Document {
     trialEndDate: Date;
     startDate: Date | null;
     paidThroughDate: Date | null;
+    isFree: boolean; // Super Admin granted free access: no invoices, collections never gated
     createdAt: Date;
     updatedAt: Date;
 }
@@ -26,6 +27,7 @@ const OrgSubscriptionSchema = new Schema<IOrgSubscription>({
     trialEndDate: { type: Date, required: true },
     startDate: { type: Date, default: null },
     paidThroughDate: { type: Date, default: null },
+    isFree: { type: Boolean, default: false },
 }, { timestamps: true });
 
 export default mongoose.models.OrgSubscription || mongoose.model<IOrgSubscription>('OrgSubscription', OrgSubscriptionSchema);

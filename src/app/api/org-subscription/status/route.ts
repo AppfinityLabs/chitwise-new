@@ -46,6 +46,24 @@ export async function GET(request: NextRequest) {
             status: 'ACTIVE',
         });
 
+        // Free access granted by Super Admin: nothing to pay, collections always allowed
+        if (subscription.isFree) {
+            return withCors(NextResponse.json({
+                status: 'ACTIVE',
+                isFree: true,
+                isCollectionAllowed: true,
+                isTrialActive: false,
+                trialDaysRemaining: 0,
+                planName: null,
+                pricePerGroup: 0,
+                maxGroups: null,
+                activeGroupCount,
+                groupInvoices: [],
+                totalDue: 0,
+                unpaidGroupCount: 0,
+            }), origin);
+        }
+
         // Trial status
         if (subscription.status === 'TRIAL') {
             const trialEndsAt = new Date(subscription.trialEndDate);

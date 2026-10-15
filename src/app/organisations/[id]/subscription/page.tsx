@@ -15,6 +15,7 @@ interface Subscription {
     trialStartDate: string;
     trialEndDate: string;
     startDate: string | null;
+    isFree?: boolean;
 }
 
 interface Invoice {
@@ -122,6 +123,14 @@ export default function SubscriptionManagement() {
         performAction('activate-plan', { planName: selectedPlan });
     };
 
+    const handleSetFree = (free: boolean) => {
+        const msg = free
+            ? 'Give this organisation free access? They will never be billed, and any unpaid invoices will be waived.'
+            : 'Remove free access? Without a paid plan the organisation will have to select a plan before collecting.';
+        if (!confirm(msg)) return;
+        performAction('set-free', { free });
+    };
+
     const handleWaiveInvoice = (invoiceId: string) => {
         if (!confirm('Waive this invoice? The org will not need to pay.')) return;
         performAction('waive-invoice', { invoiceId });
@@ -224,6 +233,9 @@ export default function SubscriptionManagement() {
                                 }`}>
                                 {subscription.status === 'ACTIVE' ? <CheckCircle size={14} /> : <XCircle size={14} />}
                                 {subscription.status}
+                                {subscription.isFree && (
+                                    <span className="ml-1 px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[10px] font-bold">FREE</span>
+                                )}
                             </span>
                         </div>
                         <div>
@@ -243,6 +255,33 @@ export default function SubscriptionManagement() {
                     <p className="text-zinc-500">No subscription record found</p>
                 )}
             </div>
+
+            {/* Free Access */}
+            {subscription && (
+                <div className="glass-card p-6 mb-6">
+                    <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+                        <Gift size={14} className="inline mr-2" />
+                        Free Access
+                    </h2>
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <p className="text-zinc-500 text-sm max-w-xl">
+                            {subscription.isFree
+                                ? 'This organisation has free access. No invoices are generated and collections are never blocked.'
+                                : 'Give this organisation free access so they never need to pay. Unpaid invoices are waived and no new ones are generated.'}
+                        </p>
+                        <button
+                            onClick={() => handleSetFree(!subscription.isFree)}
+                            disabled={actionLoading}
+                            className={`px-5 py-2 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${subscription.isFree
+                                ? 'bg-zinc-700 hover:bg-zinc-600'
+                                : 'bg-emerald-600 hover:bg-emerald-500'
+                                }`}
+                        >
+                            {actionLoading ? 'Processing...' : subscription.isFree ? 'Remove Free Access' : 'Make Free'}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Activate Plan */}
             <div className="glass-card p-6 mb-6">

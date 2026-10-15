@@ -29,6 +29,11 @@ export async function checkSubscriptionGate(
         return { allowed: false, reason: 'No subscription found. Please contact support.', status: 'NONE' };
     }
 
+    // Free access granted by Super Admin covers every group.
+    if (subscription.isFree) {
+        return { allowed: true };
+    }
+
     // Trial is org-level and covers every group.
     if (subscription.status === 'TRIAL') {
         if (new Date() <= new Date(subscription.trialEndDate)) {
@@ -133,7 +138,7 @@ export async function getOrCreateGroupInvoice(
     billingMonth: Date = getCurrentBillingMonth(),
 ) {
     const subscription = await OrgSubscription.findOne({ organisationId });
-    if (!subscription || !subscription.planName) {
+    if (!subscription || !subscription.planName || subscription.isFree) {
         return null;
     }
 
@@ -184,7 +189,7 @@ export async function getOrCreateCurrentInvoicesForOrg(
     billingMonth: Date = getCurrentBillingMonth(),
 ) {
     const subscription = await OrgSubscription.findOne({ organisationId });
-    if (!subscription || !subscription.planName) {
+    if (!subscription || !subscription.planName || subscription.isFree) {
         return [];
     }
 
