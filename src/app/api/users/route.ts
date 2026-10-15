@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { name, email, password, role, phone } = body;
+        const username = typeof body.username === 'string' ? body.username.trim().toLowerCase() : '';
 
         // Basic validation
         if (!name || !email || !password) {
@@ -67,12 +68,16 @@ export async function POST(request: NextRequest) {
         if (existingUser) {
             return withCors(NextResponse.json({ error: 'User with this email already exists' }, { status: 400 }), origin);
         }
+        if (username && await User.exists({ username })) {
+            return withCors(NextResponse.json({ error: 'This username is already taken' }, { status: 400 }), origin);
+        }
 
         const hashedPassword = await hashPassword(password);
 
         const newUser = await User.create({
             name,
             email,
+            username: username || undefined,
             password: hashedPassword,
             phone: phone || undefined,
             role: userRole,

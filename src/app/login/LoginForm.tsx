@@ -109,7 +109,7 @@ export default function LoginForm() {
                         {/* Email Field */}
                         <div className="space-y-2">
                             <label htmlFor="email" className="block text-sm font-medium text-zinc-300 ml-1">
-                                Email Address
+                                Username or Email
                             </label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-400">
@@ -117,12 +117,14 @@ export default function LoginForm() {
                                 </div>
                                 <input
                                     id="email"
-                                    type="email"
+                                    type="text"
+                                    autoCapitalize="none"
+                                    autoComplete="username"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
                                     className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/50 border border-zinc-700/50 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-300 hover:border-zinc-600/50"
-                                    placeholder="Enter your email"
+                                    placeholder="Enter your username or email"
                                     disabled={loading}
                                 />
                             </div>

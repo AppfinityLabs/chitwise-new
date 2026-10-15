@@ -21,18 +21,20 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     try {
+        // "email" may hold either the email or the username (kept as the field name for older clients)
         const { email, password } = await request.json();
+        const login = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
         // Validate input
-        if (!email || !password) {
+        if (!login || !password) {
             return withCors(
-                NextResponse.json({ error: 'Email and password are required' }, { status: 400 }),
+                NextResponse.json({ error: 'Username/email and password are required' }, { status: 400 }),
                 origin
             );
         }
 
         // Rate limit by IP + email to throttle brute-force attempts
-        const rateKey = `login:${getClientIp(request)}:${String(email).toLowerCase()}`;
+        const rateKey = `login:${getClientIp(request)}:${login}`;
         const rate = checkRateLimit(rateKey, LOGIN_LIMIT, LOGIN_WINDOW_MS);
         if (!rate.allowed) {
             return withCors(
@@ -44,12 +46,12 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Find user by email
-        const user = await User.findOne({ email: email.toLowerCase() });
+        // Usernames cannot contain '@', so anything with one is an email
+        const user = await User.findOne(login.includes('@') ? { email: login } : { username: login });
 
         if (!user) {
             return withCors(
-                NextResponse.json({ error: 'Invalid email or password' }, { status: 401 }),
+                NextResponse.json({ error: 'Invalid username/email or password' }, { status: 401 }),
                 origin
             );
         }
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest) {
 
         if (!isPasswordValid) {
             return withCors(
-                NextResponse.json({ error: 'Invalid email or password' }, { status: 401 }),
+                NextResponse.json({ error: 'Invalid username/email or password' }, { status: 401 }),
                 origin
             );
         }
