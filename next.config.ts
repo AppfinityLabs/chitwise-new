@@ -3,6 +3,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ["mongoose", "bcryptjs", "firebase-admin"],
+  // Flutter web build of the org app, copied into public/mobile at deploy time
+  async rewrites() {
+    return [
+      { source: "/mobile", destination: "/mobile/index.html" },
+    ];
+  },
   async headers() {
     return [
       {
