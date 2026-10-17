@@ -27,6 +27,8 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 python3 deploy/render_env.py "$TMP" "$IMAGE" .env.local deploy/production.env
 
+deploy/build-mobile-web.sh
+
 echo "==> Building $IMAGE"
 g builds submit --region="$REGION" --config="$TMP/cloudbuild.yaml" .
 

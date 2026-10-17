@@ -49,7 +49,8 @@ export async function middleware(request: NextRequest) {
     }
 
     // Public routes that don't require authentication
-    const publicRoutes = ['/login'];
+    // /mobile is the Flutter web build; it authenticates its API calls with a Bearer token
+    const publicRoutes = ['/login', '/mobile'];
     const publicApiRoutes = [
         '/api/auth/login',
         '/api/auth/send-otp',

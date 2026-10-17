@@ -5,3 +5,5 @@ playwright-report
 test-results
 tsconfig.tsbuildinfo
 firebase-service-account.json
+# Generated Flutter web build must ship even though git ignores it
+!public/mobile/
